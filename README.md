@@ -21,7 +21,7 @@ With the widespread use of machine learning, concerns over its security and reli
 * Comparing total training times of SAT, Fast AT, and Free AT with RRM. Yellow regions represent the total time of adversarially training a teacher. If an adversarially robust teacher is already trained, the total training time of RRM is decreased significantly.
 
 <p align="center">
-<img src="assets/cifar_time_compare.pdf" width="500"/>
+<img src="assets/cifar_time_compare.png" width="500"/>
 </p>
 
 * Comparing the performance and training time of a robust ResNet50 and VGG16 models trained using SAT and RRM. An AlexNet model trained using SAT is used as teacher for RRM. The adversarial accuracy evaluation is done using an L2-bound AutoPGD attack with ε = 3, 20 iterations, and 5 random restarts

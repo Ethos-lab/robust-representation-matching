@@ -103,7 +103,7 @@ def main():
         train_loss = 0
         train_acc = 0
         train_n = 0
-        pbar = tqdm.tqdm(total=len(train_loader))
+        pbar = tqdm.tqdm(total=len(train_loader), leave=False)
         for i, (X, y) in enumerate(train_loader):
             X, y = X.cuda(), y.cuda()
             delta = torch.zeros_like(X).cuda()

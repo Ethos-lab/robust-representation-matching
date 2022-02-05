@@ -91,7 +91,7 @@ def evaluate_pgd(test_loader, model, attack_iters, restarts):
     pgd_acc = 0
     n = 0
     model.eval()
-    pbar = tqdm.tqdm(total=len(test_loader))
+    pbar = tqdm.tqdm(total=len(test_loader), leave=False)
     pbar.set_description('PGD Evaluation')
     for i, (X, y) in enumerate(test_loader):
         X, y = X.cuda(), y.cuda()

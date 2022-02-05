@@ -115,79 +115,40 @@ def main():
         train_loss = 0
         train_acc = 0
         train_n = 0
-#        t0 = 0
-#        t1 = 0
-#        t2 = 0
-#        t3 = 0
-#        t4 = 0
-#        t5 = 0
-#        t6 = 0
-#        t7 = 0
-#        with torch.autograd.profiler.profile() as prof:
-        pbar = tqdm.tqdm(total=len(train_loader))
+        pbar = tqdm.tqdm(total=len(train_loader), leave=False)
         for i, (X, y) in enumerate(train_loader):
-#            st = time.time()
             X, y = X.cuda(), y.cuda()
-#            t0 += (time.time() - st)
             for _ in range(args.minibatch_replays):
-#                st = time.time()
                 output = model(X + delta[:X.size(0)])
-#                t1 += (time.time() - st)
 
-#                st = time.time()
                 loss = criterion(output, y)
-#                t2 += (time.time() - st)
 
-#                st = time.time()
                 opt.zero_grad()
                 with amp.scale_loss(loss, opt) as scaled_loss:
                     scaled_loss.backward()
-#                t3 += (time.time() - st)
-
-#                st = time.time()
                 grad = delta.grad.detach()
                 delta.data = clamp(delta + epsilon * torch.sign(grad), -epsilon, epsilon)
                 delta.data[:X.size(0)] = clamp(delta[:X.size(0)], lower_limit - X, upper_limit - X)
-#                t4 += (time.time() - st)
 
-#                st = time.time()
                 opt.step()
-#                t5 += (time.time() - st)
-
                 delta.grad.zero_()
-
-#                st = time.time()
                 scheduler.step()
-#                t6 += (time.time() - st)
 
-#            st = time.time()
             train_loss += loss.item() * y.size(0)
             train_acc += (output.max(1)[1] == y).sum().item()
             train_n += y.size(0)
             pbar.set_description(f'Epoch: {epoch}/{args.epochs}, Iter: {i}/{len(train_loader)}, Loss: {train_loss/train_n:.4f}, Accuracy: {100*train_acc/train_n:.4f}%')
             pbar.update(1)
-#            t7 += (time.time() - st)
 
         pbar.close()
         epoch_time = time.time()
         lr = scheduler.get_lr()[0]
         logger.info('Train | Epoch: %d \t Time: %.1f \t LR: %.4f \t Loss: %.4f \t Accuracy: %.4f', epoch, epoch_time - start_epoch_time, lr, train_loss/train_n, train_acc/train_n)
 
-#        print(f'move x and y to gpu: {t0/args.minibatch_replays:.4f}s')
-#        print(f'student forward pass: {t1/args.minibatch_replays:.4f}s')
-#        print(f'loss computation: {t2/args.minibatch_replays:.4f}s')
-#        print(f'backprop: {t3/args.minibatch_replays:.4f}s')
-#        print(f'attack computation: {t4/args.minibatch_replays:.4f}s')
-#        print(f'parameter update: {t5/args.minibatch_replays:.4f}s')
-#        print(f'scheduler step: {t6/args.minibatch_replays:.4f}s')
-#        print(f'counter updates: {t7/args.minibatch_replays:.4f}s')
-#        print(f'total: {t0 + t1 + t2 + t3 + t4 + t5 + t6 + t7:.4f}s')
-
-#        print(prof.key_averages().table(sort_by="self_cpu_time_total", row_limit=5))
-
         model.eval()
         pgd_acc = 0.0
-#        pgd_loss, pgd_acc = evaluate_pgd(test_loader, model, 10, 1)
+        # Uncomment line below if want to run pgd eval at the end of every epoch
+        # pgd_loss, pgd_acc = evaluate_pgd(test_loader, model, 10, 1)
         test_loss, test_acc = evaluate_standard(test_loader, model)
         logger.info(f'Test | Std Acc: {test_acc:.4f}, PGD Acc: {pgd_acc:.4f}')
 

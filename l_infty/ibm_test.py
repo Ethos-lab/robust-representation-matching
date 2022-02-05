@@ -25,7 +25,7 @@ def get_args():
     parser.add_argument("--step-size", type=float, default=0.00784313725490196, help="perturb step size")
     parser.add_argument("--constraint", type=str, choices=["2", "inf"], default='inf', help="PGD attack constraint metric")
     parser.add_argument("--random-restarts", default=1, type=int, help="random initialization for PGD")
-    parser.add_argument("--attack", type=str, default='pgd')
+    parser.add_argument("--attack", type=str, default='pgd', choices=['pgd', 'autopgd'])
 
     args = parser.parse_args()
 
@@ -35,7 +35,7 @@ def get_args():
 def test(model, test_loader, attack=None):
     correct = 0
     total = 0
-    pbar = tqdm.tqdm(total=len(test_loader))
+    pbar = tqdm.tqdm(total=len(test_loader), leave=False)
     for im, lbl in test_loader:
         im, lbl = im.numpy(), lbl.numpy()
         if attack:
@@ -104,17 +104,10 @@ def main():
         }
         adversary = ProjectedGradientDescentPyTorch(art_model, **attack_kwargs)
 
-    elif args.attack == 'auto_pgd':
+    else:
         adversary = AutoProjectedGradientDescent(art_model, norm=norm, eps=args.eps, eps_step=2 * args.eps,
                                                  max_iter=args.pgd_iters, targeted=False, batch_size=args.batch_size,
                                                  verbose=False, nb_random_init=args.random_restarts)
-
-    elif args.attack == 'auto_attack':
-        adversary = AutoAttack(art_model, norm=norm, eps=args.eps, eps_step=2 * args.eps, targeted=False,
-                               batch_size=args.batch_size)
-
-    else:
-        raise ValueError
 
     acc = test(art_model, test_loader, adversary)
     print(f"Adversarial accuracy ({args.eps:.4f}): {acc:.4f}%")

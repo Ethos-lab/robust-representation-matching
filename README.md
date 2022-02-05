@@ -34,13 +34,18 @@ With the widespread use of machine learning, concerns over its security and reli
 ## Overview of the Repository
 Our source-code contains two main directories:
 
-- **l_infty:** contains scripts used to generate results from Table 1 and Figures 2, 3, and 4 from the main paper.
-	- `train_pgd.py`: train a classifier using fast version of SAT (Madry et al.)
-	- `train_free.py`: train a classifier using fast version of Free-AT (Shafahi et al.)
+- **[l_infty](https://github.com/pratik18v/robust-representation-matching/tree/main/l_infty):** contains scripts used to generate results from Table 1 and Figures 2, 3, and 4 from the main paper.
+	- `train_pgd.py`: train a classifier using fast version of SAT (Madry et al.).
+	- `train_free.py`: train a classifier using fast version of Free-AT (Shafahi et al.).
 	- `train_rrm.py`: train a classifier using RRM.
-	- `test.py`: perform evaluation using manual attack implementation
-	- `ibm_test.py`: perform evaluation using [IBM ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox)'s attack implementation
-- **l_2:** contains scripts used to generate results from Tables 2, 3 and Figure 5 from the main paper.
+	- `test.py`: perform evaluation using manual attack implementation.
+	- `ibm_test.py`: perform evaluation using [IBM ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox)'s attack implementation.
+- **[l_2](https://github.com/pratik18v/robust-representation-matching/tree/main/l_2):** contains scripts used to generate results from Tables 2, 3 and Figure 5 from the main paper.
+	- `robustness/main.py`: train a classifier using SAT (Madry et al.).
+	- `train_rrm.py`: train a classifier using RRM.
+	- `train_kdloss.py`: train a classifier using knowledge distillation loss.
+	- `test.py`: perform evaluation using manual attack implementation.
+	- `ibm_test.py`: perform evaluation using [IBM ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox)'s attack implementation.
 
 
 Our code borrows heavily from the following open-source repositories:
@@ -72,7 +77,11 @@ python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --dat
 
 
 ## Acknowledgement
-TBA
+[TODO: complete]
 
 ## Citation
-TBA
+[TODO: complete]
+
+## License
+
+All content in this repository is licensed under the MIT license. [TODO: add license file to repo]

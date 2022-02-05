@@ -1,4 +1,5 @@
-In this set of experiments, our threat model consists of a l_infinity bound adversary with epsilon = 8 and attack step size = 2.
+In this set of experiments, our threat model consists of a l_infinity bound adversary with `epsilon = 8`.
+
 ## Training
 To train a resnet50 model on CIFAR-10 dataset, refer to the following example commands:
 

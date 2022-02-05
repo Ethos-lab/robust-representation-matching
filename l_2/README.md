@@ -1,3 +1,5 @@
+In this set of experiments, our threat model consists of a l_2 bound adversary with `epsilon = 1.0` for CIFAR-10 and `epsilon = 3.0` for Restricted-ImageNet.
+
 ## Training
 
 To train a resnet50 model on CIFAR-10 dataset, refer to the following example commands:

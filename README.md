@@ -1,4 +1,4 @@
-#Robust Representation Matching (RRM)
+# Robust Representation Matching (RRM)
 
 This repository contains the code and models necessary to replicate the results of our USENIX'22 paper:
 

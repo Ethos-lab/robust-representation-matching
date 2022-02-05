@@ -62,19 +62,18 @@ conda activate smoothing-adversarial
 pip install -r requirements.txt
 ```
 
-3. Download one of our pre-trained models from [here](). Create a directory named `checkpoints` in the project root directory and store the downloaded model here.
+3. Download one of our pre-trained models from [here](). Create a directory named `checkpoints` in the project root directory and store the downloaded model there.
 4. The following is an example to evaluate a pre-trained ResNet50 model:
 
 ```
 # AutoPGD Attack using IBM ART
 python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
-
 ```
 
 ## Example
 
 ### Training
-Let's train a resnet50 model on CIFAR-10 dataset using the following three methods:
+To train a resnet50 model on CIFAR-10 dataset, refer to the following example commands:
 
 **1. fast SAT**
 
@@ -96,16 +95,16 @@ Let's train a resnet50 model on CIFAR-10 dataset using the following three metho
 
 ### Evaluation
 
-We provide two evaluation scripts in this repo: `test.py` and `ibm_test.py`. The first one uses a manual implementation the PGD attack. The second on uses [IBM's ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox) to execute sate-of-the-art attacks like AutoPGD. Both these scripts return accuracy on the clean test set by default. Example usage is shown below:
+We provide two evaluation scripts in this repo:
 
-* Using manual attack script `test.py`
+* `test.py`: uses a manual implementation of the PGD attack.
 
 ```
 # PGD Attack
 python test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --data-dir /path/to/cifar --random-restarts 10 --pgd-iters 50
 ```
 
-* Using IBM ART attack script `ibm_test.py`
+* `ibm_test.py`: uses [IBM's ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox) to execute sate-of-the-art attacks like AutoPGD.
 
 ```
 # PGD Attack
@@ -115,6 +114,8 @@ python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --dat
 python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
 
 ```
+
+Both these scripts return accuracy on the clean test set by default.
 
 ## Acknowledgement
 TBD

@@ -22,13 +22,13 @@ def get_args():
     parser = argparse.ArgumentParser(description='RRM training script for CIFAR-10.')
     parser.add_argument('--batch-size', default=128, type=int)
     parser.add_argument('--data-dir', default='/media/big_hdd/data/CIFAR10', type=str)
-    parser.add_argument('--epochs', default=12, type=int, help='Total number of epochs will be this argument * number of minibatch replays.')
+    parser.add_argument('--epochs', default=48, type=int, help='Total number of epochs will be this argument * number of minibatch replays.')
     parser.add_argument('--lr-schedule', default='cyclic', type=str, choices=['cyclic', 'multistep', 'cosine'])
     parser.add_argument('--lr-min', default=0., type=float)
-    parser.add_argument('--lr-max', default=0.04, type=float)
+    parser.add_argument('--lr-max', default=0.1, type=float)
     parser.add_argument('--weight-decay', default=5e-4, type=float)
     parser.add_argument('--momentum', default=0.9, type=float)
-    parser.add_argument('--minibatch-replays', default=8, type=int)
+    parser.add_argument('--minibatch-replays', default=1, type=int)
     parser.add_argument('--out-dir', default='checkpoints', type=str, help='Output directory')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--opt-level', default='O2', type=str, choices=['O0', 'O1', 'O2'],
@@ -37,14 +37,14 @@ def get_args():
         help='If loss_scale is "dynamic", adaptively adjust the loss scale over time')
     parser.add_argument('--master-weights', action='store_true',
         help='Maintain FP32 master weights to accompany any FP16 model weights, not applicable for O1 opt level')
-    parser.add_argument("--arch", type=str, default="resnet50")
+    parser.add_argument("--arch", type=str, default="resnet50", choices=['resnet18', 'resnet50', 'vgg11', 'vgg19'])
     parser.add_argument('--exp-name', default='', type=str)
-
-    parser.add_argument("--t-arch", type=str, default="resnet50")
+    # method-specific args
+    parser.add_argument("--t-arch", type=str, default="vgg11", choices=['resnet18', 'resnet50', 'vgg11', 'vgg19'])
     parser.add_argument("--t-load-path", type=str, default="")
     parser.add_argument("--xent-weight", type=float, default=1.)
-    parser.add_argument("--feat-weight", type=float, default=1.)
     parser.add_argument("--feat-loss", type=str, default="cosine", choices=["l2", "cosine"])
+    parser.add_argument("--feat-weight", type=float, default=1.)
 
     return parser.parse_args()
 

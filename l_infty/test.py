@@ -13,7 +13,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="Testing script using manual attack implementations.")
     parser.add_argument("--data-dir", type=str, default="/media/big_hdd/data/CIFAR10",
                         help="path to dataset if you need diff from default")
-    parser.add_argument("--arch", type=str, default="resnet50")
+    parser.add_argument("--arch", type=str, default="resnet50", choices=['resnet18', 'resnet50', 'vgg11', 'vgg19'])
     parser.add_argument("--load-path", type=str, default="")
     parser.add_argument("--batch-size", type=int, default=100, help="initial batch size")
     parser.add_argument("--num-workers", type=int, default=4, help="for dataloader")

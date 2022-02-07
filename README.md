@@ -27,7 +27,7 @@ With the widespread use of machine learning, concerns over its security and reli
 * Comparing the performance and training time of a robust ResNet50 and VGG16 models trained using SAT and RRM. An AlexNet model trained using SAT is used as teacher for RRM. The adversarial accuracy evaluation is done using an L2-bound AutoPGD attack with ε = 3, 20 iterations, and 5 random restarts
 
 <p align="center">
-<img src="assets/table3.png" width="700"/>
+<img src="assets/table3.png" width="650"/>
 </p>
 
 
@@ -53,7 +53,7 @@ Our code borrows heavily from the following open-source repositories:
 - [robustness package](https://github.com/MadryLab/robustness) (by MadryLab)
 - [fast_adversarial](https://github.com/locuslab/fast_adversarial) (by locuslab)
 
-## Getting Started
+## Quickstart
 
 1. Clone the repository
 
@@ -67,12 +67,12 @@ conda activate rrm
 pip install -r requirements.txt
 ```
 
-3. Download one of our pre-trained models from [here](). Create a directory named `checkpoints` in the project root directory and store the downloaded model there.
-4. The following is an example to evaluate a pre-trained ResNet50 model:
+3. Download one of our l\_infty or l\_2 pre-trained models from [here](). Create a directory named `checkpoints` in either [l_infty](https://github.com/pratik18v/robust-representation-matching/tree/main/l_infty) or [l_2](https://github.com/pratik18v/robust-representation-matching/tree/main/l_2) subdir and store the downloaded model there.
+4. The following is an example to evaluate a l\_infty pre-trained ResNet50 model using the threat model from the paper:
 
 ```
 # AutoPGD Attack using IBM ART
-python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
+python l_infty/ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
 ```
 
 
@@ -85,3 +85,11 @@ python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt.last --dat
 ## License
 
 All content in this repository is licensed under the MIT license. [TODO: add license file to repo]
+
+## To-Dos
+* Add path to pre-trained models.
+* Add scripts for running experiments from the main paper end-to-end.
+* Complete acknowledgement.
+* Complete citation.
+* Add arxiv link to readme intro.
+* Add MIT license file to repo.

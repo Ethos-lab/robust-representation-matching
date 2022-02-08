@@ -204,7 +204,7 @@ python train.py \
 
 ### Evaluation
 
-To replicate numbers reported in Table 2, appropriately set the args `arch`, `load-path`, `data-path`, and run:
+To replicate numbers reported in Table 2, appropriately set the args `arch`, `load-path`, `data-path` in the command below:
 
 ```
 # AutoPGD Attack

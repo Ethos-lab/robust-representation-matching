@@ -61,7 +61,7 @@ Our code borrows heavily from the following open-source repositories:
 
 2. Install dependencies
 
-```
+``` 
 conda create -n rrm python=3.6
 conda activate rrm
 pip install -r requirements.txt

@@ -26,14 +26,14 @@ python train_free.py --data-dir /path/to/cifar --arch resnet50  --opt-level O2
 
 **4. RRM (VGG11)**
 
-- Train the VGG11 teacher using fast AT:
+- Step 1: Train the VGG11 teacher using fast AT:
 
 ```
 # VGG11 fast AT train
 python train_pgd.py --data-dir /path/to/cifar --arch vgg11 --opt-level O2
 ```
 
-- Train the ResNet50 student using RRM and the previously trained VGG11 model:
+- Step 2: Train the ResNet50 student using RRM and the previously trained VGG11 model:
 
 ```
 # RRM (VGG11) train
@@ -42,14 +42,14 @@ python train_rrm.py --data-dir /path/to/cifar --arch resnet50 --t-arch vgg11 --t
 
 **4. RRM (ResNet18)**
 
-- Train the ResNet18 teacher using fast AT:
+- Step 1: Train the ResNet18 teacher using fast AT:
 
 ```
 # ResNet18 fast AT train
 python train_pgd.py --data-dir /path/to/cifar --arch resnet18 --opt-level O2
 ```
 
-- Train the ResNet50 student using RRM and the previously trained ResNet18 model:
+- Step 2: Train the ResNet50 student using RRM and the previously trained ResNet18 model:
 
 ```
 # RRM (ResNet18) train
@@ -78,4 +78,4 @@ python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir
 
 ```
 
-Both these scripts return accuracy on the clean test set by default. Run the AutoPGD attack by approproately setting the args `arch`, `load-path`, `data-path`, to get the numbers reported in Table 1.
+Both these scripts return accuracy on the clean test set by default. Run the AutoPGD attack by appropriately setting the args `arch`, `load-path`, `data-path`, to get the numbers reported in Table 1.

@@ -88,7 +88,7 @@ All content in this repository is licensed under the MIT license. [TODO: add lic
 
 ## To-Dos
 * Add path to pre-trained models.
-* Add scripts for running experiments from the main paper end-to-end.
+* Add script to parse log files and generate time numbers.
 * Complete acknowledgement.
 * Complete citation.
 * Add arxiv link to readme intro.

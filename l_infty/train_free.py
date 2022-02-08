@@ -168,8 +168,8 @@ def main():
     pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 20, 1) #50, 10
     test_loss, test_acc = evaluate_standard(test_loader, model_test)
 
-    logger.info('Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
-    logger.info('%.4f \t \t %.4f \t %.4f \t %.4f', test_loss, test_acc, pgd_loss, pgd_acc)
+    logger.info('Test Loss: %.4f \t \t Test Acc: %.4f \t PGD Loss: %.4f \t PGD Acc: %.4f',
+                test_loss, test_acc, pgd_loss, pgd_acc)
 
     torch.save({
             "state_dict": model.state_dict(),

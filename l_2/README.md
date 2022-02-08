@@ -11,20 +11,18 @@ The following are the commands to train the models from Table 2 in the main pape
 python -m robustness.main \
     --dataset cifar \
     --data /path/to/cifar \
-    --arch resnet50 \				# model architecutre
+	--arch resnet50 \					# model architecutre
     --out-dir checkpoints \ 			# directory where all checkpoints will be stored
-    --exp-name cifar_vgg11_l2_1_0 \ 		# name of checkpoint save dir for this experiment
-    --adv-train 1 \ 				# perform adversarial training
-    --adv-eval 1 \ 				# perform adversarial evaluation at the end of every epoch
-    --constraint 2 \ 				# l_2 adversary
-    --eps 1.0 \ 				# adversary budget
-    --attack-lr 0.2 \ 				# attack step size
-    --random-start 1 				# start attack at a point randomly sampled from the neighborhood of the given input
+    --exp-name cifar_vgg11_l2_1_0 \ 	# name of checkpoint save dir for this experiment
+    --adv-train 1 \ 					# perform adversarial training
+    --adv-eval 1 \ 						# perform adversarial evaluation at the end of every epoch
+    --constraint 2 \ 					# l_2 adversay
+	--eps 1.0 \ 						# adversary budget
+    --attack-lr 0.2 \ 					# attack step size
+    --random-start 1 					# start attack at a point randomly sampled from the neighborhood of the given input
 ```
 
 2. **RDT**
-
-This is a 3-step process:
 
 * Step 1: Training a robust teacher (VGG11/ResNet18):
 
@@ -50,9 +48,9 @@ python -m robustness.main \
 python generate_dr_cifar.py \
     --dataset cifar \ 					# this script only supports cifar
     --dataroot /path/to/cifar \
-    --arch vgg11 \					# or, resnet18
-    --ckpt-dir ./checkpoints \				# directory where all checkpoints will be stored
-    --model-dir cifar_vgg11_l2_1_0 \			# directory within <ckpt-dir> with teacher's checkpoint
+    --arch vgg11 \						# or, resnet18
+    --ckpt-dir ./checkpoints \			# directory where all checkpoints will be stored
+    --model-dir cifar_vgg11_l2_1_0 \	# directory within <ckpt-dir> with teacher's checkpoint
     --batch-size 500 \
     --step-size 0.1 \
     --iterations 1000
@@ -74,10 +72,42 @@ python train.py \
     --exp-name dr=vgg11_l2_1_0
 ```
 
+3. **KD (VGG11/ResNet18)**
 
-3. **RRM (VGG11/ResNet18)**
+* Step 1: Training a robust teacher (VGG11/ResNet18):
 
-This is a 2-step process:
+```bash
+python -m robustness.main \
+    --dataset cifar \
+    --data /path/to/cifar \
+    --arch vgg11 \	# or, resnet18
+    --out-dir checkpoints \
+    --exp-name cifar_vgg11_l2_1_0 \
+    --adv-train 1 \
+    --adv-eval 1 \
+    --constraint 2 \
+    --eps 1.0 \
+    --attack-lr 0.2 \
+    --random-start 1
+```
+
+* Step 2: Transferring robustness from the teacher trained in previous step to a ResNet50 student:
+
+```bash
+python train_kdloss.py \
+    --dataset cifar \
+    --dataroot /path/to/cifar \
+    --load-std-data \
+    --teacher-load-path ./checkpoints/cifar_vgg11_l2_1_0/checkpoint.pt \
+    --teacher-arch vgg11 \
+    --student-arch resnet50 \
+    --alpha 1.0 \
+    --temperature 30.0 
+```
+
+
+
+4. **RRM (VGG11/ResNet18)**
 
 * Step 1: Training a robust teacher (VGG11/ResNet18):
 

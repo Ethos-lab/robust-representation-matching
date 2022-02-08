@@ -97,7 +97,6 @@ def main():
 
     # Training
     start_train_time = time.time()
-    logger.info('Epoch \t Seconds \t LR \t \t Train Loss \t Train Acc')
     for epoch in range(args.epochs):
         start_epoch_time = time.time()
         train_loss = 0
@@ -137,8 +136,8 @@ def main():
         pbar.close()
         epoch_time = time.time()
         lr = scheduler.get_lr()[0]
-        logger.info('%d \t %.1f \t \t %.4f \t %.4f \t %.4f',
-            epoch, epoch_time - start_epoch_time, lr, train_loss/train_n, train_acc/train_n)
+        logger.info('Train | Epoch: %d \t Time: %.1f \t LR: %.4f \t Loss: %.4f \t Accuracy: %.4f',
+            epoch, epoch_time - start_epoch_time, lr, train_loss / train_n, train_acc / train_n)
         torch.save({
                 "state_dict": model.state_dict(),
                 "optimizer_state_dict": opt.state_dict(),
@@ -163,8 +162,8 @@ def main():
     pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 20, 1)
     test_loss, test_acc = evaluate_standard(test_loader, model_test)
 
-    logger.info('Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
-    logger.info('%.4f \t \t %.4f \t %.4f \t %.4f', test_loss, test_acc, pgd_loss, pgd_acc)
+    logger.info('Test Loss: %.4f \t \t Test Acc: %.4f \t PGD Loss: %.4f \t PGD Acc: %.4f',
+                test_loss, test_acc, pgd_loss, pgd_acc)
 
 
 if __name__ == "__main__":

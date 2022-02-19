@@ -239,7 +239,7 @@ To replicate numbers reported in Table 2, appropriately set the args `arch`, `lo
 
 ```
 # AutoPGD Attack
-python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --dataroot /path/to/imagenet/root --attack autopgd --eps 3.0 --pgd-iters 20 --random-starts 5
+python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --dataroot /path/to/imagenet/root --attack autopgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 
 ```
 

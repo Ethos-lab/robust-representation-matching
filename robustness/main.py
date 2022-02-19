@@ -7,7 +7,6 @@ from argparse import ArgumentParser
 import os
 import git
 import torch as ch
-from torch.utils.data import DataLoader
 
 import cox
 import cox.utils
@@ -32,6 +31,8 @@ parser = defaults.add_args_to_parser(defaults.CONFIG_ARGS, parser)
 parser = defaults.add_args_to_parser(defaults.MODEL_LOADER_ARGS, parser)
 parser = defaults.add_args_to_parser(defaults.TRAINING_ARGS, parser)
 parser = defaults.add_args_to_parser(defaults.PGD_ARGS, parser)
+parser.add_argument("--temperature", type=float, default=1.)
+
 
 def main(args, store=None):
     '''Given arguments from `setup_args` and a store from `setup_store`,
@@ -43,26 +44,8 @@ def main(args, store=None):
     data_path = os.path.expandvars(args.data)
     dataset = DATASETS[args.dataset](data_path)
 
-#    train_loader, val_loader = dataset.make_loaders(args.workers,
-#                    args.batch_size, data_aug=bool(args.data_aug))
-
-    #############
-
-    train_data = ch.cat(ch.load("/media/big_hdd/data/CIFAR10_constructed/d_robust_CIFAR/CIFAR_ims")).cpu()
-    train_labels = ch.cat(ch.load("/media/big_hdd/data/CIFAR10_constructed/d_robust_CIFAR/CIFAR_lab")).cpu()
-    train_set = folder.TensorDataset(train_data, train_labels,
-                                     transform=TRAIN_TRANSFORMS_DEFAULT(32))
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True,
-                              num_workers=args.workers, pin_memory=True)
-
-    #NOTE: Still need arg: dataroot to load val set.
-    _, val_loader = dataset.make_loaders(only_val=True,
-                                        batch_size=128,
-                                        shuffle_val=False,
-                                        workers=args.workers)
-
-
-    ################
+    train_loader, val_loader = dataset.make_loaders(args.workers,
+                   args.batch_size, data_aug=bool(args.data_aug))
 
     train_loader = helpers.DataPrefetcher(train_loader)
     val_loader = helpers.DataPrefetcher(val_loader)
@@ -75,7 +58,7 @@ def main(args, store=None):
         parallel = True 
     # MAKE MODEL
     model, checkpoint = make_and_restore_model(arch=args.arch,
-            dataset=dataset, resume_path=args.resume, parallel=parallel)
+            dataset=dataset, resume_path=args.resume, parallel=parallel, temperature=args.temperature)
     if 'module' in dir(model): model = model.module
 
     if args.eval_only:

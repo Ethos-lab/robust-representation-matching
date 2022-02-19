@@ -4,7 +4,7 @@ import time
 import argparse
 import numpy as np
 
-import torch as ch
+import torch
 
 from robustness import model_utils
 from robustness.datasets import DATASETS
@@ -15,7 +15,7 @@ def get_args():
     parser = argparse.ArgumentParser(description="Robust data generation script.")
     parser.add_argument("--dataset", type=str, choices=["cifar"],
                         default="cifar", help="dataset")
-    parser.add_argument("--dataroot", type=str, default="/media/big_hdd/data/CIFAR10",
+    parser.add_argument("--dataroot", type=str, default="./CIFAR10",
                         help="path to dataset")
     parser.add_argument("--ckpt-dir", type=str, default="./checkpoints")
     parser.add_argument("--model-dir", type=str, default="cifar_resnet18_l2_1_0")
@@ -34,10 +34,12 @@ def get_args():
 
 
 def main():
+    device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
 
     # Get arguments
     args = get_args()
 
+    #NOTE: Change here if you want to store robust data somewhere else
     args.save_dir = f"./robust_data_cifar/{args.model_dir}"
 
     if not os.path.exists(args.save_dir):
@@ -52,7 +54,8 @@ def main():
     train_loader, _ = dataset.make_loaders(data_aug=False,
                                            batch_size=args.batch_size,
                                            workers=args.num_workers)
-    train_loader = helpers.DataPrefetcher(train_loader)
+    if device == 'cuda:0':
+        train_loader = helpers.DataPrefetcher(train_loader)
 
     # Load model
     model_kwargs = {
@@ -66,7 +69,7 @@ def main():
     # Custom loss for inversion
     def inversion_loss(model, inp, targ):
         _, rep = model(inp, with_latent=True)
-        loss = ch.norm(rep - targ, dim=1)
+        loss = torch.norm(rep - targ, dim=1)
         return loss, None
 
     # PGD parameters
@@ -87,29 +90,28 @@ def main():
     start_t = time.time()
     pbar = tqdm.tqdm(total=len(train_loader))
     for i, (im, label) in enumerate(train_loader):
-        # get randon init points
+        # get random init points
         im_n = []
         for _ in range(im.shape[0]):
             idx = int(np.random.randint(0, len(train_loader.dataset)))
             im_n.append(train_loader.dataset.__getitem__(idx)[0])
-        im_n = ch.stack(im_n)
+        im_n = torch.stack(im_n)
 
         # get target feature vector
-        with ch.no_grad():
-            (_, rep), _ = model(im.cuda(), with_latent=True)
+        with torch.no_grad():
+            (_, rep), _ = model(im.to(device), with_latent=True)
 
         # perform pgd
-        _, xadv = model(im_n.cuda(), rep.clone(), make_adv=True, **kwargs)
+        _, xadv = model(im_n.to(device), rep.clone(), make_adv=True, **kwargs)
 
         xadvs.append(xadv.detach().cpu())
         labels.append(label.cpu())
         pbar.update(1)
-
     pbar.close()
 
     # save data to file
-    ch.save(xadvs, f"{args.save_dir}/{args.dataset.upper()}_ims")
-    ch.save(labels, f"{args.save_dir}/{args.dataset.upper()}_lab")
+    torch.save(xadvs, f"{args.save_dir}/{args.dataset.upper()}_ims")
+    torch.save(labels, f"{args.save_dir}/{args.dataset.upper()}_lab")
     print(f"Total duration: {time.time() - start_t} secs")
 
 

@@ -13,7 +13,7 @@ python -m robustness.main \
     --data /path/to/cifar \
 	--arch resnet50 \					# model architecutre
     --out-dir checkpoints \ 			# directory where all checkpoints will be stored
-    --exp-name cifar_vgg11_l2_1_0 \ 	# name of checkpoint save dir for this experiment
+    --exp-name cifar_resnet50_l2_1_0 \ 	# name of checkpoint save dir for this experiment
     --adv-train 1 \ 					# perform adversarial training
     --adv-eval 1 \ 						# perform adversarial evaluation at the end of every epoch
     --constraint 2 \ 					# l_2 adversay
@@ -24,8 +24,7 @@ python -m robustness.main \
 
 2. **RDT**
 
-* Step 1: Training a robust teacher (VGG11/ResNet18):
-
+* Step 1: Training a robust teacher (VGG11/ResNet18)
 
 ```bash
 python -m robustness.main \
@@ -45,7 +44,7 @@ python -m robustness.main \
 * Step 2:  Generating robust training data using teacher trained in previous step:
 
 ```bash
-python generate_dr_cifar.py \
+python -m l_2.generate_dr_cifar \
     --dataset cifar \ 					# this script only supports cifar
     --dataroot /path/to/cifar \
     --arch vgg11 \						# or, resnet18
@@ -62,13 +61,13 @@ python generate_dr_cifar.py \
 * Step 3: Training a student model on the robust training data generated in previous step:
 
 ```bash
-python train.py \
+python -m l_2.train_rrm \
     --dataset cifar \
     --dataroot /path/to/cifar \
     --rob-dataroot ./robust_data_cifar/cifar_vgg11_l2_1_0 \
     --student-arch resnet50 \
     --xent-weight 1.0 \
-    --l2-weight 0.0 \
+    --feat-weight 0.0 \
     --exp-name dr=vgg11_l2_1_0
 ```
 
@@ -88,16 +87,15 @@ python -m robustness.main \
     --constraint 2 \
     --eps 1.0 \
     --attack-lr 0.2 \
-    --random-start 1
+    --random-start 1 \
+    --temperature 30.0
 ```
 
 * Step 2: Transferring robustness from the teacher trained in previous step to a ResNet50 student:
 
 ```bash
-python train_kdloss.py \
-    --dataset cifar \
+python -m l_2.train_kdloss \
     --dataroot /path/to/cifar \
-    --load-std-data \
     --teacher-load-path ./checkpoints/cifar_vgg11_l2_1_0/checkpoint.pt \
     --teacher-arch vgg11 \
     --student-arch resnet50 \
@@ -129,7 +127,7 @@ python -m robustness.main \
 * Step 2: Transferring robustness from the teacher trained in previous step to a ResNet50 student:
 
 ```bash
-python train.py \
+python -m l_2.train_rrm \
     --dataset cifar \
     --dataroot /path/to/cifar \
     --load-std-data \
@@ -137,7 +135,8 @@ python train.py \
     --teacher-arch vgg11 \
     --student-arch resnet50 \
     --xent-weight 0.001 \
-    --l2-weight 1.0 
+    --feat-loss cosine
+    --feat-weight -1.0 
 ```
 
 
@@ -149,7 +148,7 @@ We provide two evaluation scripts in this repo:
 
 ```
 # PGD Attack
-python test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --eps 1.0 --step-size 0.125 --pgd-iters 20 --constraint 2
+python -m l_2.test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --temperature 1.0 --eps 1.0 --step-size 0.125 --pgd-iters 50 --random-restarts 10
 
 ```
 
@@ -157,14 +156,14 @@ python test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /pa
 
 ```
 # PGD Attack
-python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack pgd --eps 1.0 --step-size 0.125 --pgd-iters 20 --constraint 2
+python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --temperature 1.0 --attack pgd --eps 1.0 --step-size 0.125 --pgd-iters 50 --random-restarts 10
 
 # AutoPGD Attack (reported in main paper)
-python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --eps 1.0 --pgd-iters 20 --constraint 2
+python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --temperature 1.0 --attack autopgd --eps 1.0 --pgd-iters 50 --random-restarts 10
 
 ```
 
-Both these scripts return accuracy on the clean test set by default. Run the AutoPGD attack by appropriately setting args `arch`, `load-path`, `data-path`, to get the numbers reported in Table 2.
+Both these scripts return accuracy on the clean test set by default. Run the AutoPGD attack by appropriately setting args `arch`, `load-path`, `dataroot`, to get the numbers reported in Table 2.
 
 
 ## Replicating Results from Table 3
@@ -219,7 +218,7 @@ python -m robustness.main \
 * Step 2: Transferring robustness from the teacher trained in previous step to a ResNet50/VGG16 student:
 
 ```bash
-python train.py \
+python -m l_2.train_rrm \
     --dataset restricted_imagenet \
     --dataroot /path/to/imagenet/root \
     --load-std-data \
@@ -227,18 +226,20 @@ python train.py \
     --teacher-arch alexnet \
     --student-arch resnet50 \	#or, vgg16
     --xent-weight 0.001 \
-    --l2-weight 1.0  \
+    --feat-loss l2 \
+    --feat-weight 1.0  \
     --epochs 60 \
-    --lr-schedule 35,50
+    --lr-schedule multistep \
+    --milestones 35,50
 ```
 
 ### Evaluation
 
-To replicate numbers reported in Table 2, appropriately set the args `arch`, `load-path`, `data-path` in the command below:
+To replicate numbers reported in Table 2, appropriately set the args `arch`, `load-path`, `dataroot` in the command below:
 
 ```
 # AutoPGD Attack
-python ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/imagenet/root --attack auto_pgd --eps 3.0 --pgd-iters 20 --constraint 2 --random-starts 5
+python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --dataroot /path/to/imagenet/root --attack autopgd --eps 3.0 --pgd-iters 20 --random-starts 5
 
 ```
 

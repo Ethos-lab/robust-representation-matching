@@ -34,21 +34,22 @@ With the widespread use of machine learning, concerns over its security and reli
 ## Overview of the Repository
 Our source-code contains two main directories:
 
-- **[l_infty](https://github.com/pratik18v/robust-representation-matching/tree/main/l_infty):** contains scripts used to generate results from Table 1 and Figures 2, 3, and 4 from the main paper.
+- **[robustness](https://github.com/pratik18v/robust-representation-matching/tree/main/robustness)**: The [robustness package](https://github.com/MadryLab/robustness) by MadryLab with some modifications to support our experiments.
+
+- **[l_inf](https://github.com/pratik18v/robust-representation-matching/tree/main/l_inf):** contains scripts used to generate results from Table 1 and Figures 2, 3, and 4 from the main paper.
 	- `train_pgd.py`: train a classifier using fast version of SAT (Madry et al.).
 	- `train_free.py`: train a classifier using fast version of Free-AT (Shafahi et al.).
 	- `train_rrm.py`: train a classifier using RRM.
 	- `test.py`: perform evaluation using manual attack implementation.
 	- `ibm_test.py`: perform evaluation using [IBM ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox)'s attack implementation.
 - **[l_2](https://github.com/pratik18v/robust-representation-matching/tree/main/l_2):** contains scripts used to generate results from Tables 2, 3 and Figure 5 from the main paper.
-	- `robustness/main.py`: train a classifier using SAT (Madry et al.).
 	- `train_rrm.py`: train a classifier using RRM.
 	- `train_kdloss.py`: train a classifier using knowledge distillation loss.
 	- `test.py`: perform evaluation using manual attack implementation.
 	- `ibm_test.py`: perform evaluation using [IBM ART](https://github.com/Trusted-AI/adversarial-robustness-toolbox)'s attack implementation.
 
 
-Our code borrows heavily from the following open-source repositories:
+The code in this repository borrows heavily from the following open-source repositories:
 
 - [robustness package](https://github.com/MadryLab/robustness) (by MadryLab)
 - [fast_adversarial](https://github.com/locuslab/fast_adversarial) (by locuslab)
@@ -59,25 +60,28 @@ Our code borrows heavily from the following open-source repositories:
 
 ```git clone https://github.com/pratik18v/robust-representation-matching.git```
 
-2. Install dependencies
+2. Create virtualenv and install dependencies
 
 ``` 
-conda create -n rrm python=3.6
+conda create -n rrm python=3.6 --file requirements.txt
 conda activate rrm
-pip install -r requirements.txt
 ```
 
-3. Download one of our l\_infty or l\_2 pre-trained models from [here](). Create a directory named `checkpoints` in either [l_infty](https://github.com/pratik18v/robust-representation-matching/tree/main/l_infty) or [l_2](https://github.com/pratik18v/robust-representation-matching/tree/main/l_2) subdir and store the downloaded model there.
-4. The following is an example to evaluate a l\_infty pre-trained ResNet50 model using the threat model from the paper:
+3. Download one of our pre-trained models from [here](). 
+4. To evaluate a resnet50 classfier's robustness against the AutoPGD attack, run one of the following commands:
 
 ```
-# AutoPGD Attack using IBM ART
-python l_infty/ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
+# 1. For cifar10 classifiers trained under the l_inf threat model
+python -m l_inf.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
+
+# 2a. For cifar10 classifiers trained under the l_2 threat model
+python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --eps 1.0 --pgd-iters 50 --random-restarts 10
+
+# 2b. For restricted_imagenet classifiers trained under the l_2 threat model
+python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/imagenet/root --attack auto_pgd --eps 3.0 --pgd-iters 20 --random-starts 5
 ```
 
 
-## Acknowledgement
-[TODO: complete]
 
 ## Citation
 [TODO: complete]
@@ -87,9 +91,10 @@ python l_infty/ibm_test.py --arch resnet50 --load-path /path/to/checkpoint.pt --
 All content in this repository is licensed under the MIT license. [TODO: add license file to repo]
 
 ## To-Dos
-* Add path to pre-trained models.
+* Add link to pre-trained models.
+* * Add link to robust data.
 * Add script to parse log files and generate time numbers.
-* Complete acknowledgement.
-* Complete citation.
 * Add arxiv link to readme intro.
+* Complete citation.
 * Add MIT license file to repo.
+* Add requirements.txt

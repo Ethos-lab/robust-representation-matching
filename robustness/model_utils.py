@@ -51,7 +51,7 @@ class DummyModel(nn.Module):
         return self.model(x)
 
 def make_and_restore_model(*_, arch, dataset, resume_path=None,
-         parallel=False, pytorch_pretrained=False, add_custom_forward=False):
+         parallel=False, pytorch_pretrained=False, add_custom_forward=False, temperature=1.0):
     """
     Makes a model and (optionally) restores it from a checkpoint.
 
@@ -81,8 +81,13 @@ def make_and_restore_model(*_, arch, dataset, resume_path=None,
     if (not isinstance(arch, str)) and add_custom_forward:
         arch = DummyModel(arch)
 
-    classifier_model = dataset.get_model(arch, pytorch_pretrained) if \
-                            isinstance(arch, str) else arch
+    if dataset.ds_name == 'cifar':  # temperaute scaling implemented for cifar only
+        classifier_model = dataset.get_model(arch, pytorch_pretrained, temperature) if \
+                                isinstance(arch, str) else arch
+    else:
+        classifier_model = dataset.get_model(arch, pytorch_pretrained) if \
+            isinstance(arch, str) else arch
+
 
     model = AttackerModel(classifier_model, dataset)
 

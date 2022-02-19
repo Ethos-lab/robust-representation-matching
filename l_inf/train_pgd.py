@@ -1,26 +1,30 @@
-import argparse
-import logging
 import os
+import sys
 import time
 import tqdm
-
-import apex.amp as amp
+import logging
+import argparse
 import numpy as np
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from utils import (upper_limit, lower_limit, clamp, std, get_loaders, evaluate_pgd,
-  evaluate_standard, cifar10_mean, cifar10_std, ModelwithInputNormalization)
-import cifar_models
+import apex.amp as amp
+
+try:
+    from robustness import cifar_models
+    from l_inf.utils import (upper_limit, lower_limit, clamp, std, get_loaders, evaluate_pgd,
+      evaluate_standard, cifar10_mean, cifar10_std, ModelwithInputNormalization)
+except:
+    raise ValueError("Make sure to run with python -m from root project directory")
 
 logger = logging.getLogger(__name__)
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Fast SAT training script for CIFAR-10.')
+    parser = argparse.ArgumentParser(description='SAT (+ DAWNBench) training script for CIFAR-10 under the l_infty threat model.')
     parser.add_argument('--batch-size', default=128, type=int)
-    parser.add_argument('--data-dir', default='/media/big_hdd/data/CIFAR10', type=str)
+    parser.add_argument('--dataroot', default='./CIFAR10', type=str)
     parser.add_argument('--epochs', default=40, type=int)
     parser.add_argument('--lr-schedule', default='cyclic', type=str, choices=['cyclic', 'multistep'])
     parser.add_argument('--lr-min', default=0., type=float)
@@ -33,7 +37,7 @@ def get_args():
     parser.add_argument('--alpha', default=2, type=int, help='Step size')
     parser.add_argument('--delta-init', default='random', choices=['zero', 'random'],
         help='Perturbation initialization method')
-    parser.add_argument('--out-dir', default='checkpoints', type=str, help='Output directory')
+    parser.add_argument('--out-dir', default='./checkpoints', type=str, help='Output parent directory')
     parser.add_argument('--seed', default=0, type=int, help='Random seed')
     parser.add_argument('--opt-level', default='O2', type=str, choices=['O0', 'O1', 'O2'],
         help='O0 is FP32 training, O1 is Mixed Precision, and O2 is "Almost FP16" Mixed Precision')
@@ -42,12 +46,14 @@ def get_args():
     parser.add_argument('--master-weights', action='store_true',
         help='Maintain FP32 master weights to accompany any FP16 model weights, not applicable for O1 opt level')
     parser.add_argument("--arch", type=str, default="resnet50", choices=['resnet18', 'resnet50', 'vgg11', 'vgg19'])
-    parser.add_argument('--exp-name', default='', type=str)
+    parser.add_argument('--exp-name', default='', type=str, help='optional experiment identifier')
 
     return parser.parse_args()
 
 
 def main():
+    device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
+
     args = get_args()
 
     args.out_dir = f'{args.out_dir}/cifar10_{args.arch}_pgd_at'
@@ -55,7 +61,7 @@ def main():
         args.out_dir += args.exp_name
 
     if not os.path.exists(args.out_dir):
-        os.mkdir(args.out_dir)
+        os.makedirs(args.out_dir, exist_ok=True)
     logfile = os.path.join(args.out_dir, 'output.log')
     if os.path.exists(logfile):
         os.remove(logfile)
@@ -66,19 +72,21 @@ def main():
         level=logging.INFO,
         filename=logfile)
     logger.info(args)
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.info(args)
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    train_loader, test_loader = get_loaders(args.data_dir, args.batch_size)
+    train_loader, test_loader = get_loaders(args.dataroot, args.batch_size)
 
     epsilon = (args.epsilon / 255.) / torch.ones_like(std)
     alpha = (args.alpha / 255.) / torch.ones_like(std)
 
     model = cifar_models.__dict__[args.arch](num_classes=10)
     model = ModelwithInputNormalization(model, torch.tensor(cifar10_mean), torch.tensor(cifar10_std))
-    model = model.cuda()
+    model = model.to(device)
     model.train()
 
     opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -104,8 +112,8 @@ def main():
         train_n = 0
         pbar = tqdm.tqdm(total=len(train_loader), leave=False)
         for i, (X, y) in enumerate(train_loader):
-            X, y = X.cuda(), y.cuda()
-            delta = torch.zeros_like(X).cuda()
+            X, y = X.to(device), y.to(device)
+            delta = torch.zeros_like(X).to(device)
             if args.delta_init == 'random':
                 for ii in range(len(epsilon)):
                     delta[:, ii, :, :].uniform_(-epsilon[ii][0][0].item(), epsilon[ii][0][0].item())
@@ -138,22 +146,22 @@ def main():
         lr = scheduler.get_lr()[0]
         logger.info('Train | Epoch: %d \t Time: %.1f \t LR: %.4f \t Loss: %.4f \t Accuracy: %.4f',
             epoch, epoch_time - start_epoch_time, lr, train_loss / train_n, train_acc / train_n)
-        torch.save({
-                "state_dict": model.state_dict(),
-                "optimizer_state_dict": opt.state_dict(),
-                "epoch": epoch,
-            },
-            os.path.join(args.out_dir, f"checkpoint.pt.{epoch}")
-        )
 
     train_time = time.time()
-    torch.save(model.state_dict(), os.path.join(args.out_dir, 'model.pth'))
     logger.info('Total train time: %.4f minutes', (train_time - start_train_time)/60)
+
+    torch.save({
+            "state_dict": model.net.state_dict(),
+            "optimizer_state_dict": opt.state_dict(),
+            "epoch": epoch,
+        },
+        os.path.join(args.out_dir, f"checkpoint.pt.last")
+    )
 
     # Evaluation
     model_test = cifar_models.__dict__[args.arch](num_classes=10)
     model_test = ModelwithInputNormalization(model_test, torch.tensor(cifar10_mean), torch.tensor(cifar10_std))
-    model_test = model_test.cuda()
+    model_test = model_test.to(device)
 
     model_test.load_state_dict(model.state_dict())
     model_test.float()

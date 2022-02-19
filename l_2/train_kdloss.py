@@ -1,5 +1,7 @@
 import os
 import sys
+sys.path.append('../')
+
 import tqdm
 import time
 import logging
@@ -11,11 +13,13 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from robustness import cifar_models, imagenet_models
-from robustness.tools import helpers
-from robustness.datasets import DATASETS
-
-from utils import load_checkpoint, ModelwithInputNormalization
+try:
+    from robustness import cifar_models
+    from robustness.tools import helpers
+    from robustness.datasets import DATASETS
+    from l_2.utils import load_checkpoint, ModelwithInputNormalization
+except:
+    raise ValueError("Make sure to run with python -m from root project directory")
 
 
 CIFAR_COMPAT_MODELS = ["vgg11", "vgg19", "resnet18", "resnet50", "mobilenetv2"]
@@ -23,8 +27,6 @@ IMGNET_COMPAT_MODELS = ["alexnet", "vgg16", "resnet50"]
 
 def get_args():
     parser = argparse.ArgumentParser(description="Student-teacher training script for CIFAR10 using KD loss.")
-    parser.add_argument("--dataset", type=str, choices=["cifar", "restricted_imagenet"],
-                        default="cifar", help="dataset")
     parser.add_argument("--dataroot", type=str, default="./data",
                         help="path to dataset")
     parser.add_argument("--student-arch", type=str, default="resnet18")
@@ -33,6 +35,7 @@ def get_args():
     parser.add_argument("--teacher-arch", type=str, default="resnet50")
     parser.add_argument("--exp-name", type=str, default="",
                         help="additional description for exp to add to save_dir name")
+    parser.add_argument("--out-dir", type=str, default="./checkpoints", help="parent directory for storing checkpoints")
     parser.add_argument("--save-dir", type=str, default="",
                         help="overwrites automatically created save_dir")
     parser.add_argument("--resume", type=str, default="",
@@ -55,7 +58,7 @@ def get_args():
     return args
 
 
-def train(args, s_model, t_model, trainloader, valloader, optimizer, scheduler, logger, start_epoch, r_time_avg):
+def train(args, s_model, t_model, trainloader, valloader, optimizer, scheduler, logger, start_epoch, r_time_avg, device):
     # average meters for tracking losses
     loss_meter = helpers.AverageMeter()
     xent_meter = helpers.AverageMeter()
@@ -80,7 +83,7 @@ def train(args, s_model, t_model, trainloader, valloader, optimizer, scheduler, 
         pbar = tqdm.tqdm(total=num_batches, leave=False)
         for i, data in enumerate(trainloader, 0):
             images, labels = data
-            images, labels = images.cuda(), labels.cuda()
+            images, labels = images.to(device), labels.to(device)
             curr_bs = images.size(0)
 
             # zero the parameter gradients
@@ -125,13 +128,14 @@ def train(args, s_model, t_model, trainloader, valloader, optimizer, scheduler, 
             f"loss: {loss_meter.avg:.4f} ({xent_meter.avg:.4f}, {fl_meter.avg:.4f}) " +\
             f"std accuracy: {train_acc:.4f}%")
 
-        val_acc = test(s_model, valloader)
+        val_acc = test(s_model, valloader, device)
         logger.info(f"Val | std accuracy: {val_acc:.4f}%")
 
-    try:
-        sd = s_model.net.state_dict()
-    except:
+    if isinstance(s_model.net, nn.DataParallel):
         sd = s_model.module.net.state_dict()
+    else:
+        sd = s_model.net.state_dict()
+
     torch.save({
             "state_dict": sd,
             "optimizer_state_dict": optimizer.state_dict(),
@@ -145,7 +149,7 @@ def train(args, s_model, t_model, trainloader, valloader, optimizer, scheduler, 
     logger.info(f"Finished Training (@ {r_time_avg:.4f} secs/epoch)!!!")
 
 
-def test(model, valloader):
+def test(model, valloader, device):
     model.eval()
 
     correct = 0
@@ -153,7 +157,7 @@ def test(model, valloader):
     with torch.no_grad():
         for data in valloader:
             images, labels = data
-            images, labels = images.cuda(), labels.cuda()
+            images, labels = images.to(device), labels.to(device)
 
             # forward pass
             outputs = model(images)
@@ -167,14 +171,17 @@ def test(model, valloader):
 
 
 def main():
+    device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
+
     # Setting up logger
     logger = logging.getLogger("main")
     logger.setLevel(logging.INFO)
 
     args = get_args()
+    args.dataset = 'cifar'  # only implemented for cifar
 
     if args.save_dir == "":
-        args.save_dir = f"./checkpoints/{args.dataset}-kd_loss-teacher={args.teacher_arch}-student={args.student_arch}-alpha={args.alpha}-temperature={args.temperature}"
+        args.save_dir = f"{args.out_dir}/{args.dataset}-kd_loss-teacher={args.teacher_arch}-student={args.student_arch}-alpha={args.alpha}-temperature={args.temperature}"
         if args.exp_name != "":
            args.save_dir += f"-{args.exp_name}"
 
@@ -198,55 +205,43 @@ def main():
                                                     shuffle_train=True,
                                                     shuffle_val=False)
 
-    train_loader = helpers.DataPrefetcher(train_loader)
-    val_loader = helpers.DataPrefetcher(val_loader)
+    if device == 'cuda:0':
+        train_loader = helpers.DataPrefetcher(train_loader)
+        val_loader = helpers.DataPrefetcher(val_loader)
 
     # Prepare teacher model
-    if args.dataset == "cifar":
-        assert args.teacher_arch in CIFAR_COMPAT_MODELS, f"Please use one of these models for teacher: {CIFAR_COMPAT_MODELS}"
-        t_model = cifar_models.__dict__[args.teacher_arch](num_classes=10)
-    else:
-        assert args.teacher_arch in IMGNET_COMPAT_MODELS, f"Please use one of these models for teacher: {IMGNET_COMPAT_MODELS}"
-        t_model = imagenet_models.__dict__[args.teacher_arch](num_classes=9)
+    assert args.teacher_arch in CIFAR_COMPAT_MODELS, f"Please use one of these models for teacher: {CIFAR_COMPAT_MODELS}"
+    t_model = cifar_models.__dict__[args.teacher_arch](num_classes=10, temperature=args.temperature)
 
-    ckpt = load_checkpoint(args.teacher_load_path)
+    ckpt = load_checkpoint(args.teacher_load_path, 'eval', device)
     t_model.load_state_dict(ckpt["model_sd"])
     print(f"Successfully loaded teacher checkpoint from epoch: {ckpt['load_epoch']} !!!")
     del ckpt
 
-    t_model = ModelwithInputNormalization(t_model, dataset.mean, dataset.std).cuda()
+    t_model = ModelwithInputNormalization(t_model, dataset.mean, dataset.std).to(device)
     t_model.eval()
 
     # Prepare student model
-    if args.dataset == "cifar":
-        assert args.student_arch in CIFAR_COMPAT_MODELS, f"Please use one of these models for student: {CIFAR_COMPAT_MODELS}"
-        s_model = cifar_models.__dict__[args.student_arch](num_classes=10)
-    else:
-        assert args.student_arch in IMGNET_COMPAT_MODELS, f"Please use one of these models for student: {IMGNET_COMPAT_MODELS}"
-        s_model = imagenet_models.__dict__[args.student_arch](num_classes=9)
+    assert args.student_arch in CIFAR_COMPAT_MODELS, f"Please use one of these models for student: {CIFAR_COMPAT_MODELS}"
+    s_model = cifar_models.__dict__[args.student_arch](num_classes=10, temperature=args.temperature)
 
-    s_model = ModelwithInputNormalization(s_model, dataset.mean, dataset.std).cuda()
+    s_model = ModelwithInputNormalization(s_model, dataset.mean, dataset.std).to(device)
 
     # optimizer
     optimizer = optim.SGD(s_model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
     # scheduler
     lr_steps = args.epochs * len(train_loader)
-    if args.lr_schedule == 'multistep':
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[lr_steps / 2, lr_steps * 3 / 4], gamma=0.1)
-    elif args.lr_schedule == 'cosine':
-        def cosine_annealing(step, total_steps, lr_max, lr_min):
-            return lr_min + (lr_max - lr_min) * 0.5 * (
-                    1 + np.cos(step / total_steps * np.pi))
+    def cosine_annealing(step, total_steps, lr_max, lr_min):
+        return lr_min + (lr_max - lr_min) * 0.5 * (
+                1 + np.cos(step / total_steps * np.pi))
 
-        scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer,
-            lr_lambda=lambda step: cosine_annealing(
-                step,
-                lr_steps,
-                1,  # since lr_lambda computes multiplicative factor
-                1e-6 / args.lr))
-    else:
-        scheduler = None
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lr_lambda=lambda step: cosine_annealing(
+            step,
+            lr_steps,
+            1,  # since lr_lambda computes multiplicative factor
+            1e-6 / args.lr))
 
     # Run on multiple GPUs
     if torch.cuda.device_count() > 1:
@@ -257,14 +252,12 @@ def main():
     # Resume student training
     if args.resume != "":
         assert os.path.exists(args.resume), f"Invalid load path: {args.resume}"
-        ckpt = load_checkpoint(args.resume, mode="train")
-        #TODO: better way to do this?
-        try:
-            s_model.net.load_state_dict(ckpt["model_sd"])
-        except:
+        ckpt = load_checkpoint(args.resume, "train", device)
+        if isinstance(s_model.net, nn.DataParallel):
             s_model.module.net.load_state_dict(ckpt["model_sd"])
- 
-        s_model.net.load_state_dict(ckpt["model_sd"])
+        else:
+            s_model.net.load_state_dict(ckpt["model_sd"])
+
         optimizer.load_state_dict(ckpt["optim_sd"])
         start_epoch = ckpt["load_epoch"] + 1
         r_time_avg = ckpt["r_time_avg"]
@@ -276,7 +269,7 @@ def main():
         r_time_avg = 0
 
     logger.info("Started Training !!!")
-    train(args, s_model, t_model, train_loader, val_loader, optimizer, scheduler, logger, start_epoch, r_time_avg)
+    train(args, s_model, t_model, train_loader, val_loader, optimizer, scheduler, logger, start_epoch, r_time_avg, device)
 
 if __name__ == "__main__":
     main()

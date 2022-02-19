@@ -8,8 +8,9 @@ cfg = {
 }
 
 class VGG(nn.Module):
-    def __init__(self, vgg_name, num_classes=10):
+    def __init__(self, vgg_name, num_classes=10, temperature=1.0):
         super(VGG, self).__init__()
+        self.temperature = temperature
         self.features = self._make_layers(cfg[vgg_name])
         self.classifier = nn.Linear(512, num_classes)
 
@@ -19,6 +20,8 @@ class VGG(nn.Module):
         out = self.features(x)
         latent = out.view(out.size(0), -1)
         out = self.classifier(latent)
+        out = out / self.temperature
+
         if with_latent:
             return out, latent
         return out

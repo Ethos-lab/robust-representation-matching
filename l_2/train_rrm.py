@@ -5,19 +5,21 @@ import time
 import logging
 import argparse
 import numpy as np
-from apex import amp
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from robustness import cifar_models, imagenet_models
-from robustness.tools import helpers, folder
-from robustness.datasets import DATASETS
-import robustness.data_augmentation as da
+try:
+    from robustness import cifar_models, imagenet_models
+    from robustness.tools import helpers, folder
+    from robustness.datasets import DATASETS
+    import robustness.data_augmentation as da
+    from l_2.utils import load_checkpoint, ModelwithInputNormalization
+except:
+    raise ValueError("Make sure to run with python -m from root project directory")
 
-from utils import load_checkpoint, ModelwithInputNormalization
 
 torch.backends.cudnn.benchmark = True
 
@@ -27,35 +29,30 @@ IMGNET_COMPAT_MODELS = ["alexnet", "vgg16", "resnet50"]
 
 def get_args():
     parser = argparse.ArgumentParser(description="Training script for CIFAR10.")
-    parser.add_argument("--dataset", type=str, choices=["cifar", "restricted_imagenet"],
-                        default="cifar", help="dataset")
-    parser.add_argument("--dataroot", type=str, default="./data",
-                        help="path to dataset")
-    parser.add_argument("--rob-dataroot", type=str, default="./datasets/d_robust_CIFAR",
-                        help="path to robust dataset")
-    parser.add_argument("--load-std-data", action="store_true",
-                        help="loads D if true, else loads D_r")
-    parser.add_argument("--student-arch", type=str, default="resnet18")
-    parser.add_argument("--teacher-load-path", type=str,
-                        default="/path/to/teacher/checkpoint.pt.best")
-    parser.add_argument("--teacher-arch", type=str, default="resnet50")
+    parser.add_argument("--dataset", type=str, choices=["cifar", "restricted_imagenet"], default="cifar", help="dataset")
+    parser.add_argument("--dataroot", type=str, default="./data", help="path to dataset")
+    parser.add_argument("--rob-dataroot", type=str, default="./datasets/d_robust_CIFAR", help="path to robust dataset")
+    parser.add_argument("--load-std-data", action="store_true", help="loads standard data if true, else loads robust data")
+    parser.add_argument("--student-arch", type=str, default="resnet50")
+    parser.add_argument("--teacher-arch", type=str, default="vgg11")
+    parser.add_argument("--teacher-load-path", type=str, default="/path/to/teacher/checkpoint.pt")
     parser.add_argument("--exp-name", type=str, default="",
-                        help="additional description for exp to add to save_dir name")
-    parser.add_argument("--save-dir", type=str, default="",
-                        help="overwrites automatically created save_dir")
-    parser.add_argument("--resume", type=str, default="",
-                        help="resume training from the checkpoint saved at this path")
+        help="optional additional identifier for exp to add to save_dir name")
+    parser.add_argument("--out-dir", type=str, default="./checkpoints", help="parent directory for storing checkpoints")
+    parser.add_argument("--save-dir", type=str, default="", help="overwrites automatically created save_dir name")
+    parser.add_argument("--resume", type=str, default="", help="resume training from the checkpoint saved at this path")
     # training hyperparams
     parser.add_argument("--lr", type=float, default=0.1, help="initial learning rate")
     parser.add_argument('--lr-schedule', default='cosine', type=str, choices=['multistep', 'cosine'])
+    parser.add_argument('--milestones', default='35,50', type=str,
+        help='required only if lr_shcedule is multistep. comma-separated list of epochs at which lr decays.')
     parser.add_argument("--batch-size", type=int, default=128, help="initial batch size")
     parser.add_argument("--weight-decay", type=float, default=0.00005, help="weight decay")
     parser.add_argument("--epochs", type=int, default=100, help="total training epochs")
     parser.add_argument("--num-workers", type=int, default=4, help="for dataloader")
-    parser.add_argument("--xent-weight", type=float, default=1.)
-    parser.add_argument("--feat-weight", type=float, default=1.)
-    parser.add_argument("--feat-loss", type=str, choices=["l2", "cosine"], default="cosine")
-    parser.add_argument("--mixed-prec", action="store_true")
+    parser.add_argument("--xent-weight", type=float, default=0.00005)
+    parser.add_argument('--feat-loss', default='cosine', type=str, choices=['l2', 'cosine'])
+    parser.add_argument("--feat-weight", type=float, default=-1.)
     # testing hyperparams
     parser.add_argument("--val-batch-size", type=int, default=128, help="initial batch size")
 
@@ -65,7 +62,7 @@ def get_args():
 
 
 def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, scheduler, logger,
-          start_epoch, r_time_avg):
+          start_epoch, r_time_avg, device):
 
     # average meters for tracking losses
     loss_meter = helpers.AverageMeter()
@@ -73,7 +70,8 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
     fl_meter = helpers.AverageMeter()
 
     if args.feat_loss == 'cosine':
-        criterion_feat = nn.CosineSimilarity(dim=1, eps=1e-6)
+        criterion_feat = nn.CosineSimilarity(dim=1, eps=1e-6).to(device)
+
 
     num_batches = len(trainloader)
     for epoch in range(start_epoch, args.epochs):
@@ -91,7 +89,7 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
         pbar = tqdm.tqdm(total=num_batches)
         for i, data in enumerate(trainloader, 0):
             images, labels = data
-            images, labels = images.cuda(non_blocking=True), labels.cuda(non_blocking=True)
+            images, labels = images.to(device), labels.to(device)
             curr_bs = images.size(0)
             # zero the parameter gradients
             optimizer.zero_grad()
@@ -115,13 +113,10 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
             xent = criterion(outputs, labels)
 
             loss = args.xent_weight*xent + args.feat_weight*fl
-            
-            if args.mixed_prec:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+
+            loss.backward()
             optimizer.step()
+            scheduler.step()
 
             loss_meter.update(loss.item(), curr_bs)
             xent_meter.update(xent.item(), curr_bs)
@@ -133,7 +128,6 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
 
             pbar.set_description(
                 f"Train | loss: {loss_meter.avg:.4f} ({xent_meter.avg:.4f}, {fl_meter.avg:.4f})")
-            scheduler.step()
             pbar.update(1)
         pbar.close()
 
@@ -153,16 +147,17 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
             f"loss: {loss_meter.avg:.4f} ({xent_meter.avg:.4f}, {fl_meter.avg:.4f}) " +\
             f"std accuracy: {train_acc:.4f}%")
 
-        val_acc = test(s_model, valloader)
+        val_acc = test(s_model, valloader, device)
         logger.info(f"Val | std accuracy: {val_acc:.4f}%")
 
     logger.info(f"Finished Training (@ {r_time_avg:.4f} secs/epoch)!!!")
 
     # save last checkpoint
-    try:
-       sd = s_model.net.state_dict()
-    except:
-       sd = s_model.module.net.state_dict()
+    if isinstance(s_model.net, nn.DataParallel):
+        sd = s_model.module.net.state_dict()
+    else:
+        sd = s_model.net.state_dict()
+
     torch.save({
            "state_dict": sd,
            "optimizer_state_dict": optimizer.state_dict(),
@@ -174,8 +169,7 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
     )
 
 
-
-def test(model, valloader):
+def test(model, valloader, device):
     model.eval()
 
     correct = 0
@@ -183,7 +177,7 @@ def test(model, valloader):
     with torch.no_grad():
         for data in valloader:
             images, labels = data
-            images, labels = images.cuda(non_blocking=True), labels.cuda(non_blocking=True)
+            images, labels = images.to(device), labels.to(device)
 
             # forward pass
             outputs = model(images)
@@ -197,6 +191,8 @@ def test(model, valloader):
 
 
 def main():
+    device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
+
     # Setting up logger
     logger = logging.getLogger("main")
     logger.setLevel(logging.INFO)
@@ -209,9 +205,9 @@ def main():
     if args.save_dir == "":
         if args.feat_weight == 0:
             assert args.xent_weight == 1.0
-            args.save_dir = f"./checkpoints/{args.dataset}_{args.student_arch}"
+            args.save_dir = f"{args.out_dir}/{args.dataset}_{args.student_arch}"
         else:
-            args.save_dir = f"./checkpoints/{args.dataset}-feat_loss={args.feat_loss}-teacher={args.teacher_arch}-student={args.student_arch}-xent_weight={args.xent_weight}-feat_weight={args.feat_weight}"
+            args.save_dir = f"{args.out_dir}/{args.dataset}-teacher={args.teacher_arch}-student={args.student_arch}-xent_weight={args.xent_weight}-feat_loss={args.feat_loss}-feat_weight={args.feat_weight}"
 
         if args.exp_name != "":
            args.save_dir += f"-{args.exp_name}"
@@ -220,7 +216,7 @@ def main():
             assert args.xent_weight == 1.0
 
     if not os.path.exists(args.save_dir):
-        os.mkdir(args.save_dir)
+        os.makedirs(args.save_dir, exist_ok=True)
     print(f'Saving checkpoint at: {args.save_dir} !!!')
 
     logfile_path = os.path.join(args.save_dir, "log.txt")
@@ -257,8 +253,9 @@ def main():
                                             shuffle_val=False,
                                             workers=args.num_workers)
 
-    train_loader = helpers.DataPrefetcher(train_loader)
-    val_loader = helpers.DataPrefetcher(val_loader)
+    if device == 'cuda:0':
+        train_loader = helpers.DataPrefetcher(train_loader)
+        val_loader = helpers.DataPrefetcher(val_loader)
 
     # Prepare teacher model
     if args.feat_weight != 0:
@@ -269,12 +266,12 @@ def main():
             assert args.teacher_arch in IMGNET_COMPAT_MODELS, f"Please use one of these models for teacher: {IMGNET_COMPAT_MODELS}"
             t_model = imagenet_models.__dict__[args.teacher_arch](num_classes=9)
 
-        ckpt = load_checkpoint(args.teacher_load_path)
+        ckpt = load_checkpoint(args.teacher_load_path, 'eval', device)
         t_model.load_state_dict(ckpt["model_sd"])
         print(f"Successfully loaded teacher checkpoint from epoch: {ckpt['load_epoch']} !!!")
         del ckpt
 
-        t_model = ModelwithInputNormalization(t_model, dataset.mean, dataset.std).cuda()
+        t_model = ModelwithInputNormalization(t_model, dataset.mean, dataset.std).to(device)
         t_model.eval()
     else:
         t_model = None
@@ -287,15 +284,16 @@ def main():
         assert args.student_arch in IMGNET_COMPAT_MODELS, f"Please use one of these models for student: {IMGNET_COMPAT_MODELS}"
         s_model = imagenet_models.__dict__[args.student_arch](num_classes=9)
 
-    s_model = ModelwithInputNormalization(s_model, dataset.mean, dataset.std).cuda()
+    s_model = ModelwithInputNormalization(s_model, dataset.mean, dataset.std).to(device)
 
     # criterion and optimizer
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss().to(device)
     optimizer = optim.SGD(s_model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
 
     lr_steps = args.epochs * len(train_loader)
     if args.lr_schedule == 'multistep':
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[lr_steps / 2, lr_steps * 3 / 4], gamma=0.1)
+        milestones = [int(s)*len(train_loader) for s in args.milestones.split(',')]
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=0.1)
     elif args.lr_schedule == 'cosine':
         def cosine_annealing(step, total_steps, lr_max, lr_min):
             return lr_min + (lr_max - lr_min) * 0.5 * (
@@ -310,11 +308,6 @@ def main():
                 1e-6 / args.lr))
     else:
         scheduler = None
-
-    if args.mixed_prec:
-        opt_level = 'O2' if args.dataset == "cifar" else 'O1'
-        print(opt_level)
-        [s_model, t_model], optimizer = amp.initialize([s_model, t_model], optimizer, opt_level=opt_level)
  
     # Run on multiple GPUs
     if torch.cuda.device_count() > 1:
@@ -325,14 +318,11 @@ def main():
     # Resume student training
     if args.resume != "":
         assert os.path.exists(args.resume), f"Invalid load path: {args.resume}"
-        ckpt = load_checkpoint(args.resume, mode="train")
-        #TODO: better way to do this?
-        try:
-            s_model.net.load_state_dict(ckpt["model_sd"])
-        except:
+        ckpt = load_checkpoint(args.resume, "train", device)
+        if isinstance(s_model.net, nn.DataParallel):
             s_model.module.net.load_state_dict(ckpt["model_sd"])
- 
-        s_model.net.load_state_dict(ckpt["model_sd"])
+        else:
+            s_model.net.load_state_dict(ckpt["model_sd"])
         optimizer.load_state_dict(ckpt["optim_sd"])
         start_epoch = ckpt["load_epoch"] + 1
         r_time_avg = ckpt["r_time_avg"]
@@ -345,7 +335,7 @@ def main():
 
     logger.info("Started Training !!!")
     train(args, s_model, t_model, train_loader, val_loader, criterion, optimizer, scheduler,
-          logger, start_epoch, r_time_avg)
+          logger, start_epoch, r_time_avg, device)
 
 if __name__ == "__main__":
     main()

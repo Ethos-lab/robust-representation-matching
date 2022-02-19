@@ -7,32 +7,7 @@ Reference:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-class FakeReLU(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, input):
-        return input.clamp(min=0)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        return grad_output
-
-class FakeReLUM(nn.Module):
-    def forward(self, x):
-        return FakeReLU.apply(x)
-
-class SequentialWithArgs(torch.nn.Sequential):
-    def forward(self, input, *args, **kwargs):
-        vs = list(self._modules.values())
-        l = len(vs)
-        for i in range(l):
-            if i == l-1:
-                input = vs[i](input, *args, **kwargs)
-            else:
-                input = vs[i](input)
-        return input
-
+from ..tools.custom_modules import SequentialWithArgs, FakeReLU
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -94,13 +69,14 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
     # feat_scale lets us deal with CelebA, other non-32x32 datasets
-    def __init__(self, block, num_blocks, num_classes=10, feat_scale=1, wm=1):
+    def __init__(self, block, num_blocks, num_classes=10, feat_scale=1, wm=1, temperature=1.0):
         super(ResNet, self).__init__()
 
         widths = [64, 128, 256, 512]
         widths = [int(w * wm) for w in widths]
         penultimate_dim = 512 # need this for all models
 
+        self.temperature = temperature
         self.in_planes = widths[0]
         self.conv1 = nn.Conv2d(3, self.in_planes, kernel_size=3, stride=1,
                                padding=1, bias=False)
@@ -138,10 +114,8 @@ class ResNet(nn.Module):
         pre_out = out.view(out.size(0), -1)
 
         pre_out = self.added_linear(pre_out)
-        if self.linear != None:
-            final = self.linear(pre_out)
-        else:
-            final = None
+        final = self.linear(pre_out)
+        final = final / self.temperature
 
         if with_latent:
             return final, pre_out
@@ -153,18 +127,8 @@ def ResNet18(**kwargs):
 def ResNet50(**kwargs):
     return ResNet(Bottleneck, [3,4,6,3], **kwargs)
 
-def ResNet101(**kwargs):
-    return ResNet(Bottleneck, [3,4,23,3], **kwargs)
-
-def ResNet152(**kwargs):
-    return ResNet(Bottleneck, [3,8,36,3], **kwargs)
-
-
 resnet18 = ResNet18
 resnet50 = ResNet50
-resnet101 = ResNet101
-resnet152 = ResNet152
-
 
 #def test():
 #    net = resnet18()

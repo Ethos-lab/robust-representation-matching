@@ -3,8 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DNN(nn.Module):
-    def __init__(self, num_classes=10):
+    def __init__(self, num_classes=10, temperature=1.0):
         super().__init__()
+        self.temperature = temperature
         self.features = self._make_layers()
         self.classifier = nn.Linear(512, num_classes)
 
@@ -38,6 +39,8 @@ class DNN(nn.Module):
             "fake_relu and no_relu not yet supported for this architecture"
         latent = self.features(x)
         out = self.classifier(latent)
+        out = out / self.temperature
+
         if with_latent:
             return out, latent
         return out

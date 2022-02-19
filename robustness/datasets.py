@@ -360,12 +360,12 @@ class CIFAR(DataSet):
         ds_kwargs = self.override_args(ds_kwargs, kwargs)
         super(CIFAR, self).__init__('cifar', data_path, **ds_kwargs)
 
-    def get_model(self, arch, pretrained):
+    def get_model(self, arch, pretrained, temperature=1.0):
         """
         """
         if pretrained:
             raise ValueError('CIFAR does not support pytorch_pretrained=True')
-        return cifar_models.__dict__[arch](num_classes=self.num_classes)
+        return cifar_models.__dict__[arch](num_classes=self.num_classes, temperature=temperature)
 
 class CINIC(DataSet):
     """

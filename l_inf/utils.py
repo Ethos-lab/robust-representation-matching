@@ -1,3 +1,4 @@
+import dill
 import tqdm
 
 import torch
@@ -9,8 +10,8 @@ import apex.amp as amp
 cifar10_mean = (0.4914, 0.4822, 0.4465)
 cifar10_std = (0.2471, 0.2435, 0.2616)
 
-mu = torch.tensor(cifar10_mean).view(3, 1, 1).cuda()
-std = torch.tensor(cifar10_std).view(3, 1, 1).cuda()
+mu = torch.tensor(cifar10_mean).view(3, 1, 1).to(device)
+std = torch.tensor(cifar10_std).view(3, 1, 1).to(device)
 
 upper_limit = ((1. - torch.zeros_like(mu)) / torch.ones_like(std))
 lower_limit = ((0. - torch.zeros_like(mu)) / torch.ones_like(std))
@@ -51,11 +52,11 @@ def get_loaders(dir_, batch_size, workers=4):
     return train_loader, test_loader
 
 
-def attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts, opt=None):
-    max_loss = torch.zeros(y.shape[0]).cuda()
-    max_delta = torch.zeros_like(X).cuda()
+def attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts, device, opt=None):
+    max_loss = torch.zeros(y.shape[0]).to(device)
+    max_delta = torch.zeros_like(X).to(device)
     for zz in range(restarts):
-        delta = torch.zeros_like(X).cuda()
+        delta = torch.zeros_like(X).to(device)
         for i in range(len(epsilon)):
             delta[:, i, :, :].uniform_(-epsilon[i][0][0].item(), epsilon[i][0][0].item())
         delta.data = clamp(delta, lower_limit - X, upper_limit - X)
@@ -84,7 +85,7 @@ def attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts, opt=None):
     return max_delta
 
 
-def evaluate_pgd(test_loader, model, attack_iters, restarts):
+def evaluate_pgd(test_loader, model, attack_iters, restarts, device):
     epsilon = (8 / 255.) / torch.ones_like(std)
     alpha = (2 / 255.) / torch.ones_like(std)
     pgd_loss = 0
@@ -94,8 +95,8 @@ def evaluate_pgd(test_loader, model, attack_iters, restarts):
     pbar = tqdm.tqdm(total=len(test_loader), leave=False)
     pbar.set_description('PGD Evaluation')
     for i, (X, y) in enumerate(test_loader):
-        X, y = X.cuda(), y.cuda()
-        pgd_delta = attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts)
+        X, y = X.to(device), y.to(device)
+        pgd_delta = attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts, device)
         with torch.no_grad():
             output = model(X + pgd_delta)
             loss = F.cross_entropy(output, y)
@@ -108,7 +109,7 @@ def evaluate_pgd(test_loader, model, attack_iters, restarts):
     return pgd_loss / n, pgd_acc / n
 
 
-def evaluate_standard(test_loader, model):
+def evaluate_standard(test_loader, model, device):
     test_loss = 0
     test_acc = 0
     n = 0
@@ -117,7 +118,7 @@ def evaluate_standard(test_loader, model):
     pbar.set_description('Standard Evaluation')
     with torch.no_grad():
         for i, (X, y) in enumerate(test_loader):
-            X, y = X.cuda(), y.cuda()
+            X, y = X.to(device), y.to(device)
             output = model(X)
             loss = F.cross_entropy(output, y)
             test_loss += loss.item() * y.size(0)
@@ -134,7 +135,6 @@ class InputNormalize(torch.nn.Module):
     A module (custom layer) for normalizing the input to have a fixed 
     mean and standard deviation (user-specified).
     '''
-
     def __init__(self, new_mean, new_std):
         super(InputNormalize, self).__init__()
         new_std = new_std[..., None, None]
@@ -145,7 +145,7 @@ class InputNormalize(torch.nn.Module):
 
     def forward(self, x):
         x = torch.clamp(x, 0, 1)
-        x_normalized = (x - self.new_mean) / self.new_std
+        x_normalized = (x - self.new_mean)/self.new_std
         return x_normalized
 
 
@@ -155,7 +155,7 @@ class ModelwithInputNormalization(torch.nn.Module):
         self.normalizer = InputNormalize(mean, std)
         self.net = net
 
-    def forward(self, inp, with_latent=False, fake_relu=False, no_relu=False):
+    def forward(self,  inp, with_latent=False, fake_relu=False, no_relu=False):
         normalized_inp = self.normalizer(inp)
 
         if no_relu and (not with_latent):
@@ -167,3 +167,36 @@ class ModelwithInputNormalization(torch.nn.Module):
                           fake_relu=fake_relu, no_relu=no_relu)
 
         return output
+
+
+def load_checkpoint(load_path, mode, device):
+    assert mode in ['train', 'eval']
+
+    checkpoint = torch.load(load_path, pickle_module=dill, map_location=device)
+    state_dict_path = "model"
+    if not ("model" in checkpoint):
+        state_dict_path = "state_dict"
+
+    sd = checkpoint[state_dict_path]
+    sd = {k.replace("module.model.", ""):v for k,v in sd.items()\
+          if ("attacker" not in k) and ("normalizer" not in k)}
+
+    load_epoch = checkpoint['epoch']
+    optim_sd = None
+    best_acc = None
+    r_time_avg = None
+    if mode == 'train':
+        optim_sd = checkpoint["optimizer_state_dict"]
+        best_acc = checkpoint["best_acc"]
+        r_time_avg = checkpoint["time_per_epoch"]
+
+    # clear out memory
+    del checkpoint
+
+    ckpt = {'model_sd': sd,
+            'load_epoch': load_epoch,
+            'optim_sd': optim_sd,
+            'best_acc': best_acc,
+            'r_time_avg': r_time_avg}
+
+    return ckpt

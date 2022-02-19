@@ -1,13 +1,15 @@
 import dill
-import torch as ch
+
+import torch
+import torch.nn as nn
 
 from robustness.tools import helpers
 
 
-def load_checkpoint(load_path, mode='eval'):
+def load_checkpoint(load_path, mode, device):
     assert mode in ['train', 'eval']
 
-    checkpoint = ch.load(load_path, pickle_module=dill)
+    checkpoint = torch.load(load_path, pickle_module=dill, map_location=device)
     state_dict_path = "model"
     if not ("model" in checkpoint):
         state_dict_path = "state_dict"
@@ -37,7 +39,7 @@ def load_checkpoint(load_path, mode='eval'):
     return ckpt
 
 
-class ModelwithInputNormalization(ch.nn.Module):
+class ModelwithInputNormalization(nn.Module):
     def __init__(self, net, mean, std):
         super(ModelwithInputNormalization, self).__init__()
         self.normalizer = helpers.InputNormalize(mean, std)

@@ -41,7 +41,7 @@ python -m robustness.main \
     --random-start 1
 ```
 
-* Step 2:  Generating robust training data using teacher trained in previous step:
+* Step 2:  Generating robust training data using teacher trained in previous step using the command below. Pre-generated robust data can be found [here](https://drive.google.com/drive/folders/1Sip2YRLQJTIM5X8VuQOr69LWLtK8r_E1?usp=sharing).
 
 ```bash
 python -m l_2.generate_dr_cifar \
@@ -167,6 +167,10 @@ Both these scripts return accuracy on the clean test set by default. Run the Aut
 
 
 ## Replicating Results from Table 3
+### Data
+Follow the instructions [here](https://github.com/facebookarchive/fb.resnet.torch/blob/master/INSTALL.md#download-the-imagenet-dataset) under the section 'Download the ImageNet dataset' to download and pre-process the ImageNet dataset.
+
+
 ### Training
 
 The following are the commands to train the models from Table 3 in the main paper:
@@ -239,7 +243,7 @@ To replicate numbers reported in Table 2, appropriately set the args `arch`, `lo
 
 ```
 # AutoPGD Attack
-python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --dataroot /path/to/imagenet/root --attack autopgd --eps 3.0 --pgd-iters 20 --random-starts 5
+python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 
 ```
 

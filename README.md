@@ -67,18 +67,18 @@ conda create -n rrm python=3.6 --file requirements.txt
 conda activate rrm
 ```
 
-3. Download one of our pre-trained models from [here](). 
+3. Download one of our pre-trained models from [here](https://drive.google.com/drive/folders/1-DiQyeu5IaVe9GC9WURwcRBTzf2eD3th?usp=sharing).
 4. To evaluate a resnet50 classfier's robustness against the AutoPGD attack, run one of the following commands:
 
 ```
 # 1. For cifar10 classifiers trained under the l_inf threat model
-python -m l_inf.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --random-restarts 10 --pgd-iters 50
+python -m l_inf.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --attack auto_pgd --pgd-iters 50 --random-restarts 10
 
 # 2a. For cifar10 classifiers trained under the l_2 threat model
-python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/cifar --attack auto_pgd --eps 1.0 --pgd-iters 50 --random-restarts 10
+python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --attack auto_pgd --eps 1.0 --pgd-iters 50 --random-restarts 10
 
 # 2b. For restricted_imagenet classifiers trained under the l_2 threat model
-python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data-dir /path/to/imagenet/root --attack auto_pgd --eps 3.0 --pgd-iters 20 --random-starts 5
+python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack auto_pgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 ```
 
 
@@ -91,10 +91,8 @@ python -m l_2.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --data
 All content in this repository is licensed under the MIT license. [TODO: add license file to repo]
 
 ## To-Dos
-* Add link to pre-trained models.
-* * Add link to robust data.
+
 * Add script to parse log files and generate time numbers.
 * Add arxiv link to readme intro.
 * Complete citation.
 * Add MIT license file to repo.
-* Add requirements.txt

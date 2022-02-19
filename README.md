@@ -93,6 +93,4 @@ All content in this repository is licensed under the MIT license. [TODO: add lic
 ## To-Dos
 
 * Add script to parse log files and generate time numbers.
-* Add arxiv link to readme intro.
-* Complete citation.
 * Add MIT license file to repo.

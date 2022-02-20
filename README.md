@@ -72,13 +72,13 @@ conda activate rrm
 
 ```
 # 1. For cifar10 classifiers trained under the l_inf threat model
-python -m l_inf.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --attack auto_pgd --pgd-iters 50 --random-restarts 10
+python -m l_inf.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --pgd-iters 50 --random-restarts 10
 
 # 2a. For cifar10 classifiers trained under the l_2 threat model
-python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --attack auto_pgd --eps 1.0 --pgd-iters 50 --random-restarts 10
+python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --eps 1.0 --pgd-iters 50 --random-restarts 10
 
 # 2b. For restricted_imagenet classifiers trained under the l_2 threat model
-python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack auto_pgd --eps 3.0 --pgd-iters 20 --random-restarts 5
+python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 ```
 
 ## Citation

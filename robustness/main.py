@@ -5,6 +5,7 @@ The main file, which exposes the robustness command-line tool, detailed in
 
 from argparse import ArgumentParser
 import os
+import shutil
 import git
 import torch as ch
 
@@ -46,7 +47,6 @@ def main(args, store=None):
 
     train_loader, val_loader = dataset.make_loaders(args.workers,
                    args.batch_size, data_aug=bool(args.data_aug))
-
     train_loader = helpers.DataPrefetcher(train_loader)
     val_loader = helpers.DataPrefetcher(val_loader)
     loaders = (train_loader, val_loader)
@@ -108,6 +108,9 @@ def setup_store_with_metadata(args):
     args.version = version
 
     # Create the store
+    if os.path.exists(os.path.join(args.out_dir, args.exp_name)):
+        shutil.rmtree(os.path.join(args.out_dir, args.exp_name))
+
     store = cox.store.Store(args.out_dir, args.exp_name)
     args_dict = args.__dict__
     schema = cox.store.schema_from_dict(args_dict)
@@ -116,6 +119,9 @@ def setup_store_with_metadata(args):
     return store
 
 if __name__ == "__main__":
+    assert ch.cuda.is_available(), \
+        'GPU required to run the robustness package!'
+
     args = parser.parse_args()
     args = cox.utils.Parameters(args.__dict__)
 

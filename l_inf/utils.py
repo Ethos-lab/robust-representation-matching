@@ -7,6 +7,9 @@ from torchvision import datasets, transforms
 
 import apex.amp as amp
 
+
+device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
+
 cifar10_mean = (0.4914, 0.4822, 0.4465)
 cifar10_std = (0.2471, 0.2435, 0.2616)
 

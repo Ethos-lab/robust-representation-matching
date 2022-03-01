@@ -55,6 +55,7 @@ The code in this repository borrows heavily from the following open-source repos
 - [fast_adversarial](https://github.com/locuslab/fast_adversarial) (by locuslab)
 
 ## Quickstart
+**NOTE:** To run the code in this repository, a GPU is required.
 
 1. Clone the repository
 
@@ -67,8 +68,11 @@ conda create -n rrm python=3.6 --file requirements.txt
 conda activate rrm
 ```
 
-3. Download one of our pre-trained models from [here](https://drive.google.com/drive/folders/1-DiQyeu5IaVe9GC9WURwcRBTzf2eD3th?usp=sharing).
-4. To evaluate a resnet50 classfier's robustness against the AutoPGD attack, run one of the following commands:
+3. Install [apex](https://github.com/NVIDIA/apex) using instructions available [here](https://github.com/NVIDIA/apex#quick-start).
+
+4. Download one of our pre-trained models from [here](https://drive.google.com/drive/folders/1-DiQyeu5IaVe9GC9WURwcRBTzf2eD3th?usp=sharing).
+
+5. To evaluate a resnet50 classfier's robustness against the AutoPGD attack, run one of the following commands:
 
 ```
 # 1. For cifar10 classifiers trained under the l_inf threat model

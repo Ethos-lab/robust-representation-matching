@@ -70,9 +70,13 @@ conda activate rrm
 
 3. Install [apex](https://github.com/NVIDIA/apex) using instructions available [here](https://github.com/NVIDIA/apex#quick-start).
 
-4. Download one of our pre-trained models from [here](https://drive.google.com/drive/folders/1-DiQyeu5IaVe9GC9WURwcRBTzf2eD3th?usp=sharing).
+4. Prepare data:
+	- No steps required to prepare the CIFAR-10 dataset.
+	- To prepare the ImageNet dataset, follow the instructions [here](https://github.com/facebookarchive/fb.resnet.torch/blob/master/INSTALL.md#download-the-imagenet-dataset).
 
-5. To evaluate a resnet50 classfier's robustness against the AutoPGD attack, run one of the following commands:
+5. Download one of our pre-trained models from [here](https://drive.google.com/drive/folders/1-DiQyeu5IaVe9GC9WURwcRBTzf2eD3th?usp=sharing).
+
+6. To evaluate a resnet50 classfier's robustness against the AutoPGD attack, run one of the following commands:
 
 ```
 # 1. For cifar10 classifiers trained under the l_inf threat model

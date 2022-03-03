@@ -143,7 +143,7 @@ def train(args, s_model, t_model, trainloader, valloader, criterion, optimizer, 
 
         # evaluate at end of each epoch
         train_acc = 100 * correct / total
-        logger.info(f"Train (lr: {curr_lr} ) | "+\
+        logger.info(f"Train | lr: {curr_lr} | time taken: {curr_time:.2f}s | "+\
             f"loss: {loss_meter.avg:.4f} ({xent_meter.avg:.4f}, {fl_meter.avg:.4f}) " +\
             f"std accuracy: {train_acc:.4f}%")
 

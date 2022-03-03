@@ -163,7 +163,9 @@ python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /pa
 
 ```
 
-Both these scripts return accuracy on the clean test set by default. Run the AutoPGD attack by appropriately setting args `arch`, `load-path`, `dataroot`, to get the numbers reported in Table 2.
+Run the AutoPGD attack by appropriately setting args `arch`, `load-path`, `dataroot`, to get the numbers reported in Table 2.
+
+Both these scripts return accuracy on the clean test set by default. Training time statistics will also be generated if the training log text file is available.
 
 
 ## Replicating Results from Table 3
@@ -246,4 +248,5 @@ To replicate numbers reported in Table 2, appropriately set the args `arch`, `lo
 python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 ```
 
+Training time statistics will also be generated if the training log text file is available.
 

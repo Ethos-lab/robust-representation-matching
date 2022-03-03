@@ -1,3 +1,4 @@
+import os
 import tqdm
 import argparse
 import numpy as np
@@ -49,7 +50,6 @@ def test(amodel, test_loader, device, make_adv, attack_kwargs=None):
     correct = 0
     total = 0
     pbar = tqdm.tqdm(total=len(test_loader), leave=False)
-    mean_logits = np.zeros(10)
     for im, lbl in test_loader:
         im, lbl = im.to(device), lbl.to(device)
         if make_adv:
@@ -58,15 +58,36 @@ def test(amodel, test_loader, device, make_adv, attack_kwargs=None):
             pred, _ = amodel(im_adv)
         else:
             pred, _ = amodel(im, make_adv=False)
-        mean_logits += torch.mean(pred, dim=0).detach().cpu().numpy()
         label_pred = torch.argmax(pred, dim=1)
         correct += (label_pred == lbl).sum().item()
         total += im.shape[0]
         pbar.update(1)
     pbar.close()
-#    print(mean_logits / len(test_loader))
 
     return 100*correct/total
+
+
+def compute_time_stats(logfile):
+    all_vals = []
+    data = open(logfile, 'r').read().split('\n')[:-1]
+    # Hack for identifying the logging format
+    if 'Argument' in data[0]:
+        for d in data:
+            if 'Train |' in d:
+                tmp = d.split('|')[2]
+                assert 'time taken' in tmp, "Failed to parse log file  !!!"
+                all_vals.append(float(tmp.split(':')[-1].strip()[:-1]))
+    else:
+        raise ValueError('Unable to identify log file format !!!')
+
+    # Computing 95% confidence interval for average epoch time
+    pop_size = len(all_vals)
+    pop_mean = np.mean(all_vals)
+    pop_std = np.std(all_vals)
+    std_err = pop_std / np.sqrt(pop_size)
+    ci = 1.962 * std_err    # 95% confidence interval
+
+    return {'mean': pop_mean, 'ci': ci, 'epochs': pop_size}
 
 
 def main():
@@ -107,9 +128,17 @@ def main():
     amodel = AttackerModel(model, dataset).to(device)
     amodel.eval()
 
-    # Clean eval
+    # Training time statistics
+    logfile = f'{args.load_path.replace(args.load_path.split("/")[-1], "log.txt")}'
+    if not os.path.exists(logfile):
+        print("Unable to find log file, skipping train time stats computation !!!")
+    else:
+        res = compute_time_stats(logfile)
+        print(f'Average epoch time: {res["mean"]:.2f}s, 95% confidence interval: {res["ci"]:.2f}s')
+        print(f'Total training time: {res["mean"] * res["epochs"]/3600:.2f}h or {res["mean"] * res["epochs"]/60:.2f}m or {res["mean"] * res["epochs"]:.2f}s ')
+
     acc = test(amodel, test_loader, device, make_adv=False)
-    print(f"Natural accuracy: {acc:.4f}%")
+    print(f"Clean accuracy: {acc:.4f}%")
 
     # PGD eval
     attack_kwargs = {

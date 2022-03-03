@@ -1,3 +1,4 @@
+import os.path
 import sys
 sys.path.append('../')
 
@@ -62,6 +63,29 @@ def test(model, test_loader, attack=None):
     return 100*correct/total
 
 
+def compute_time_stats(logfile):
+    all_vals = []
+    data = open(logfile, 'r').read().split('\n')[:-1]
+    # Hack for identifying the logging format
+    if 'Argument' in data[0]:
+        for d in data:
+            if 'Train |' in d:
+                tmp = d.split('|')[2]
+                assert 'time taken' in tmp, "Failed to parse log file  !!!"
+                all_vals.append(float(tmp.split(':')[-1].strip()[:-1]))
+    else:
+        raise ValueError('Unable to identify log file format !!!')
+
+    # Computing 95% confidence interval for average epoch time
+    pop_size = len(all_vals)
+    pop_mean = np.mean(all_vals)
+    pop_std = np.std(all_vals)
+    std_err = pop_std / np.sqrt(pop_size)
+    ci = 1.962 * std_err    # 95% confidence interval
+
+    return {'mean': pop_mean, 'ci': ci, 'epochs': pop_size}
+
+
 def main():
     device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
 
@@ -103,11 +127,17 @@ def main():
     art_model = PyTorchClassifier(model=model, loss=criterion, input_shape=input_shape,
                                   nb_classes=nb_classes, clip_values=(0,1))
 
-    # Testing begins
+    # Training time statistics
+    logfile = f'{args.load_path.replace(args.load_path.split("/")[-1], "log.txt")}'
+    if not os.path.exists(logfile):
+        print("Unable to find log file, skipping train time stats computation !!!")
+    else:
+        res = compute_time_stats(logfile)
+        print(f'Average epoch time: {res["mean"]:.2f}s, 95% confidence interval: {res["ci"]:.2f}s')
+        print(f'Total training time: {res["mean"] * res["epochs"]/3600:.2f}h or {res["mean"] * res["epochs"]/60:.2f}m or {res["mean"] * res["epochs"]:.2f}s ')
 
-    # Natural accuracy
     acc = test(art_model, test_loader)
-    print(f"Natural accuracy: {acc:.4f}%")
+    print(f"Clean accuracy: {acc:.4f}%")
 
     if args.attack == 'pgd':
        attack_kwargs = {

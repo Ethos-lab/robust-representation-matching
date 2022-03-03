@@ -64,8 +64,9 @@ The code in this repository borrows heavily from the following open-source repos
 2. Create virtualenv and install dependencies
 
 ``` 
-conda create -n rrm python=3.6 --file requirements.txt
+conda create -n rrm python=3.6
 conda activate rrm
+pip install -r requirements.txt
 ```
 
 3. Install [apex](https://github.com/NVIDIA/apex) using instructions available [here](https://github.com/NVIDIA/apex#quick-start).
@@ -99,4 +100,3 @@ If you use the code in this repository for your research, please cite our paper 
       booktitle={31st USENIX Security Symposium (USENIX Security 22)},
 }
 ```
-

@@ -1,6 +1,4 @@
-import sys
-sys.path.append('../')
-
+import os
 import tqdm
 import argparse
 import numpy as np
@@ -20,7 +18,8 @@ except:
 
 def get_args():
     parser = argparse.ArgumentParser(description="Testing script using IBM ART attack implementations.")
-    parser.add_argument("--dataroot", type=str, default="./CIFAR10", help="path to dataset if you need diff from default")
+    parser.add_argument("--dataroot", type=str, default="./CIFAR10",
+                        help="path to dataset if you need diff from default")
     parser.add_argument("--arch", type=str, default="resnet50", choices=['resnet18', 'resnet50', 'vgg11', 'vgg19'])
     parser.add_argument("--load-path", type=str, default="")
     parser.add_argument("--batch-size", type=int, default=50, help="initial batch size")
@@ -28,9 +27,10 @@ def get_args():
     # attack hyperparams (no default values, pass every time)
     parser.add_argument("--eps", type=float, default=0.03137254901960784, help="perturbation budget (default: 8/255)")
     parser.add_argument("--pgd-iters", type=int, default=20, help="perturb number of steps")
-    parser.add_argument("--step-size", type=float, default=0.00784313725490196, help="perturb step size (default: 2/255)")
+    parser.add_argument("--step-size", type=float, default=0.00784313725490196,
+                        help="perturb step size (default: 2/255)")
     parser.add_argument("--random-restarts", default=1, type=int, help="random initialization for PGD")
-    parser.add_argument("--attack", type=str, default='pgd', choices=['pgd', 'auto_pgd'])
+    parser.add_argument("--attack", type=str, default='pgd', choices=['pgd', 'autopgd'])
 
     args = parser.parse_args()
 
@@ -54,7 +54,42 @@ def test(model, test_loader, attack=None):
         pbar.update(1)
     pbar.close()
 
-    return 100*correct/total
+    return 100 * correct / total
+
+
+def compute_time_stats(logfile):
+    all_vals = []
+    data = open(logfile, 'r').read().split('\n')[:-1]
+    # Hack for identifying the logging format
+    if 'Epoch Seconds LR Train Loss Train Acc' in ' '.join(data[1].split()):
+        for d in data[2:]:
+            if 'Total train time' in d:
+                break
+            tmp = d.split('\t')
+            all_vals.append(float(tmp[1]))
+    elif 'Train |' in data[1]:
+        for d in data:
+            if 'Epoch' in d:
+                tmp = d.split('\t')
+                all_vals.append(float(tmp[1].split(':')[-1].strip()))
+    else:
+        raise ValueError('Unable to identify log file format !!!')
+
+    # Computing 95% confidence interval for average epoch time
+    pop_size = len(all_vals)
+    pop_mean = np.mean(all_vals)
+    pop_std = np.std(all_vals)
+    std_err = pop_std / np.sqrt(pop_size)
+    ci = 1.962 * std_err    # 95% confidence interval
+
+    if 'free_at' in logfile:
+        tmp = data[0].split(',')
+        for t in tmp:
+            if 'minibatch_replays' in t: minibatch_replays = int(t.split('=')[-1])
+        pop_mean /= minibatch_replays
+        pop_size *= minibatch_replays
+
+    return {'mean': pop_mean, 'ci': ci, 'epochs': pop_size}
 
 
 def main():
@@ -81,18 +116,24 @@ def main():
     model.eval()
 
     criterion = nn.CrossEntropyLoss(reduction="sum")
-    art_model =\
+    art_model = \
         PyTorchClassifier(model=model, loss=criterion, input_shape=(3, 32, 32), nb_classes=10, clip_values=(0, 1))
 
-    # Testing begins
+    # Training time statistics
+    logfile = f'{args.load_path.replace(args.load_path.split("/")[-1], "output.log")}'
+    if not os.path.exists(logfile):
+        print("Unable to find log file, skipping train time stats computation !!!")
+    else:
+        res = compute_time_stats(logfile)
+        print(f'Average epoch time: {res["mean"]:.2f}s, 95% confidence interval: {res["ci"]:.2f}s')
+        print(f'Total training time: {res["mean"] * res["epochs"]/3600:.2f}h or {res["mean"] * res["epochs"]/60:.2f}m or {res["mean"] * res["epochs"]:.2f}s ')
 
-    # Natural accuracy
     acc = test(art_model, test_loader)
-    print(f"Natural accuracy: {acc:.4f}%")
+    print(f"Clean accuracy: {acc:.4f}%")
 
     if args.attack == 'pgd':
         attack_kwargs = {
-            "norm": np.inf, # L_inf attack
+            "norm": np.inf,  # L_inf attack
             "eps": args.eps,
             "eps_step": args.step_size,
             "max_iter": args.pgd_iters,
@@ -122,4 +163,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

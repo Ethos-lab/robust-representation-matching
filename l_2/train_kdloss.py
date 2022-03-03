@@ -122,11 +122,14 @@ def train(args, s_model, t_model, trainloader, valloader, optimizer, scheduler, 
         else:
             r_time_avg = r_time_avg + ((curr_time - r_time_avg) / epoch)
 
+        for param_group in optimizer.param_groups:
+            curr_lr = param_group['lr']
+
         # evaluate at end of each epoch
         train_acc = 100 * correct / total
-        logger.info(f"Train | "+\
-            f"loss: {loss_meter.avg:.4f} ({xent_meter.avg:.4f}, {fl_meter.avg:.4f}) " +\
-            f"std accuracy: {train_acc:.4f}%")
+        logger.info(f"Train | lr: {curr_lr} | time taken: {curr_time:.2f}s | " + \
+                    f"loss: {loss_meter.avg:.4f} ({xent_meter.avg:.4f}, {fl_meter.avg:.4f}) " + \
+                    f"std accuracy: {train_acc:.4f}%")
 
         val_acc = test(s_model, valloader, device)
         logger.info(f"Val | std accuracy: {val_acc:.4f}%")

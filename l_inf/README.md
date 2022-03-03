@@ -89,4 +89,6 @@ python -m l_inf.ibm_test --arch resnet50 --load-path /path/to/checkpoint.pt --da
 
 ```
 
-Both these scripts return accuracy on the clean test set by default. Run the AutoPGD attack by appropriately setting the args `arch`, `load-path`, `data-path`, to get the numbers reported in Table 1.
+Run the AutoPGD attack by appropriately setting the args `arch`, `load-path`, `data-path`, to get the numbers reported in Table 1.
+
+Both these scripts return accuracy on the clean test set by default. Training time statistics will also be generated if the training log text file is available.

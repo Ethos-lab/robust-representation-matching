@@ -9,15 +9,15 @@ The following are the commands to train the models from Table 1 in the main pape
 python -m robustness.main \
     --dataset cifar \
     --data /path/to/cifar \
-	--arch resnet50 \						# model architecutre
+    --arch resnet50 \					# model architecutre
     --out-dir checkpoints \ 				# directory where all checkpoints will be stored
-    --exp-name cifar_resnet50_linf_8_0 \ 	# name of checkpoint save dir for this experiment
-    --adv-train 1 \ 						# perform adversarial training
-    --adv-eval 1 \ 							# perform adversarial evaluation at the end of every epoch
-    --constraint inf \ 						# l_2 adversay
-	--eps 0.03137254901960784 \ 			# adversary budget (8/255)
-    --attack-lr 0.00784313725490196 \ 		# attack step size (2/255)
-    --random-start 1 						# start attack at a point randomly sampled from the neighborhood of the given input
+    --exp-name cifar_resnet50_linf_8_0 \ 		# name of checkpoint save dir for this experiment
+    --adv-train 1 \ 					# perform adversarial training
+    --adv-eval 1 \ 					# perform adversarial evaluation at the end of every epoch
+    --constraint inf \ 					# l_2 adversay
+    --eps 0.03137254901960784 \ 			# adversary budget (8/255)
+    --attack-lr 0.00784313725490196 \ 			# attack step size (2/255)
+    --random-start 1 					# start attack at a point randomly sampled from the neighborhood of the given input
 ```
 
 

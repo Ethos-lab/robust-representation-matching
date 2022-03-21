@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 
-import apex.amp as amp
+# import apex.amp as amp
 
 
 device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')
@@ -183,6 +183,7 @@ def load_checkpoint(load_path, mode, device):
     sd = checkpoint[state_dict_path]
     sd = {k.replace("module.model.", ""):v for k,v in sd.items()\
           if ("attacker" not in k) and ("normalizer" not in k)}
+    sd = {k.replace("net.", ""): v for k, v in sd.items()}
 
     load_epoch = checkpoint['epoch']
     optim_sd = None

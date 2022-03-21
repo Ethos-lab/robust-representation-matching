@@ -17,6 +17,7 @@ def load_checkpoint(load_path, mode, device):
     sd = checkpoint[state_dict_path]
     sd = {k.replace("module.model.", ""):v for k,v in sd.items()\
           if ("attacker" not in k) and ("normalizer" not in k)}
+    sd = {k.replace("net.", ""): v for k, v in sd.items()}
 
     load_epoch = checkpoint['epoch']
     optim_sd = None

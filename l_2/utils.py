@@ -59,6 +59,3 @@ class ModelwithInputNormalization(nn.Module):
                           fake_relu=fake_relu, no_relu=no_relu)
 
         return output
-
-
-

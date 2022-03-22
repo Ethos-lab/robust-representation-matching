@@ -91,7 +91,6 @@ def main():
     model_test = ModelwithInputNormalization(model_test, torch.tensor(cifar10_mean), torch.tensor(cifar10_std))
     model_test = model_test.to(device)
 
-    # model_test.load_state_dict(torch.load(args.load_path)['state_dict'])
     ckpt = load_checkpoint(args.load_path)
     model_test.net.load_state_dict(ckpt['model_sd'])
     model_test.float()

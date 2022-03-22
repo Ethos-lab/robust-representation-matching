@@ -172,8 +172,8 @@ def main():
 
         # run epoch end evaluation
         model.eval()
-        test_loss, test_acc = evaluate_standard(test_loader, model)
-        pgd_loss, pgd_acc = evaluate_pgd(test_loader, model, 10, 1)
+        test_loss, test_acc = evaluate_standard(test_loader, model, device)
+        pgd_loss, pgd_acc = evaluate_pgd(test_loader, model, 10, 1, device)
         logger.info(f'Test | Std Acc: {test_acc:.4f}, PGD Acc: {pgd_acc:.4f}')
 
     train_time = time.time()
@@ -197,8 +197,8 @@ def main():
     model_test.float()
     model_test.eval()
 
-    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 50, 10)
-    test_loss, test_acc = evaluate_standard(test_loader, model_test)
+    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 50, 10, device)
+    test_loss, test_acc = evaluate_standard(test_loader, model_test, device)
 
     logger.info('Test Loss \t Test Acc \t PGD Loss \t PGD Acc')
     logger.info('%.4f \t \t %.4f \t %.4f \t %.4f', test_loss, test_acc, pgd_loss, pgd_acc)

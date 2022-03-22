@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 
-# import apex.amp as amp
+import apex.amp as amp
 
 
 device = torch.device('cuda:0') if torch.cuda.device_count() > 0 else torch.device('cpu')

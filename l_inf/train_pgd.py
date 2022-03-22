@@ -167,8 +167,8 @@ def main():
     model_test.float()
     model_test.eval()
 
-    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 20, 1)
-    test_loss, test_acc = evaluate_standard(test_loader, model_test)
+    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 50, 10, device)
+    test_loss, test_acc = evaluate_standard(test_loader, model_test, device)
 
     logger.info('Test Loss: %.4f \t \t Test Acc: %.4f \t PGD Loss: %.4f \t PGD Acc: %.4f',
                 test_loss, test_acc, pgd_loss, pgd_acc)

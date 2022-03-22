@@ -153,8 +153,8 @@ def main():
         model.eval()
         pgd_acc = 0.0
         # Uncomment line below if want to run pgd eval at the end of every epoch
-        # pgd_loss, pgd_acc = evaluate_pgd(test_loader, model, 10, 1)
-        test_loss, test_acc = evaluate_standard(test_loader, model)
+        # pgd_loss, pgd_acc = evaluate_pgd(test_loader, model, 10, 1, device)
+        test_loss, test_acc = evaluate_standard(test_loader, model, device)
         logger.info(f'Test | Std Acc: {test_acc:.4f}, PGD Acc: {pgd_acc:.4f}')
 
 
@@ -170,8 +170,8 @@ def main():
     model_test.float()
     model_test.eval()
 
-    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 20, 1) #50, 10
-    test_loss, test_acc = evaluate_standard(test_loader, model_test)
+    pgd_loss, pgd_acc = evaluate_pgd(test_loader, model_test, 50, 10, device)
+    test_loss, test_acc = evaluate_standard(test_loader, model_test, device)
 
     logger.info('Test Loss: %.4f \t \t Test Acc: %.4f \t PGD Loss: %.4f \t PGD Acc: %.4f',
                 test_loss, test_acc, pgd_loss, pgd_acc)

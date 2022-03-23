@@ -106,7 +106,7 @@ def main():
                                           batch_size=args.batch_size,
                                           shuffle_val=False,
                                           workers=args.num_workers)
-    if device == 'cuda:0':
+    if torch.cuda.device_count() > 0:
         test_loader = helpers.DataPrefetcher(test_loader)
 
     if args.dataset == "cifar":

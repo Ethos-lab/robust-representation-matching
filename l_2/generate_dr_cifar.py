@@ -54,7 +54,7 @@ def main():
     train_loader, _ = dataset.make_loaders(data_aug=False,
                                            batch_size=args.batch_size,
                                            workers=args.num_workers)
-    if device == 'cuda:0':
+    if torch.cuda.device_count() > 0:
         train_loader = helpers.DataPrefetcher(train_loader)
 
     # Load model

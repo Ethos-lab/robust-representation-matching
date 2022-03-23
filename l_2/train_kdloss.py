@@ -208,7 +208,7 @@ def main():
                                                     shuffle_train=True,
                                                     shuffle_val=False)
 
-    if device == 'cuda:0':
+    if torch.cuda.device_count() > 0:
         train_loader = helpers.DataPrefetcher(train_loader)
         val_loader = helpers.DataPrefetcher(val_loader)
 

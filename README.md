@@ -11,6 +11,8 @@ This repository contains the code and models necessary to replicate the results 
 **Abstract**: 
 With the widespread use of machine learning, concerns over its security and reliability have become prevalent. As such, many have developed defenses to harden neural networks against adversarial examples, imperceptibly perturbed inputs that are reliably misclassified. Adversarial training in which adversarial examples are generated and used during training is one of the few known defenses able to reliably withstand such attacks against neural networks. However, adversarial training imposes a significant training overhead and scales poorly with model complexity and input dimension. In this paper, we propose Robust Representation Matching (RRM), a low-cost method to transfer the robustness of an adversarially trained model to a new model being trained for the same task irrespective of architectural differences. Inspired by student-teacher learning, our method introduces a novel training loss that encourages the student to learn the teacher’s robust representations. Compared to prior works, RRM is superior with respect to both model performance and adversarial training time. On CIFAR-10, RRM trains a robust model ∼1.8× faster than the state-of-the-art. Furthermore, RRM remains effective on higher-dimensional datasets. On Restricted-ImageNet, RRM trains a ResNet50 model ∼18×faster than standard adversarial training.
 
+
+
 ## Key Results from the Paper
 * Comparing the performance and training time of a robust ResNet50 trained with different approaches. The teachers used for RRM models are noted in the parentheses. The adversarial accuracy evaluation is done using an L∞-bound AutoPGD attack with ε = 8/255, 50 iterations and 10 random restarts. Compared to SAT, RRM achieves significant speedup while maintaining comparable adversarial accuracy and suffering minor drop in natural accuracy. Compared to Free AT, RRM achieves better natural and adversarial accuracy while converging ∼1.8× faster.
 
@@ -55,7 +57,6 @@ The code in this repository borrows heavily from the following open-source repos
 - [fast_adversarial](https://github.com/locuslab/fast_adversarial) (by locuslab)
 
 ## Quickstart
-**NOTE:** To run the code in this repository, a GPU is required.
 
 1. Clone the repository
 
@@ -89,6 +90,13 @@ python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /pa
 # 2b. For restricted_imagenet classifiers trained under the l_2 threat model
 python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 ```
+
+**Hardware Requirements:** The following hardware is required to run the code in this repository:
+
+- 1x GPU with 12 GB memory
+- approximately 150 GB storage space
+
+Note that training Restricted-Imagenet models using our hyperparameters may require more than one 12 GB memory GPUs. All evaluation scripts can be run on a single GPU.
 
 ## Citation
 If you use the code in this repository for your research, please cite our paper using the bibtex below.

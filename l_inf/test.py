@@ -80,7 +80,7 @@ def main():
     # Training time statistics
     logfile = f'{args.load_path.replace(args.load_path.split("/")[-1], "output.log")}'
     if not os.path.exists(logfile):
-        print("Unable to find log file, skipping train time stats computation !!!")
+        print("Unable to find training log file, skipping train time stats computation !!!")
     else:
         res = compute_time_stats(logfile)
         print(f'Average epoch time: {res["mean"]:.2f}s, 95% confidence interval: {res["ci"]:.2f}s')
@@ -91,7 +91,7 @@ def main():
     model_test = ModelwithInputNormalization(model_test, torch.tensor(cifar10_mean), torch.tensor(cifar10_std))
     model_test = model_test.to(device)
 
-    ckpt = load_checkpoint(args.load_path)
+    ckpt = load_checkpoint(args.load_path, mode='eval', device=device)
     model_test.net.load_state_dict(ckpt['model_sd'])
     model_test.float()
     model_test.eval()

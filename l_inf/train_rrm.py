@@ -86,7 +86,6 @@ def main():
     model = model.to(device)
 
     t_model = cifar_models.__dict__[args.t_arch](num_classes=10)
-    t_model.linear = None # remove final layer
     t_model = ModelwithInputNormalization(t_model, torch.tensor(cifar10_mean), torch.tensor(cifar10_std))
     t_model = t_model.to(device)
     # Loading model checkpoint

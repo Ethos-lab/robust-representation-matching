@@ -134,7 +134,7 @@ python -m l_2.train_rrm \
     --teacher-load-path ./checkpoints/cifar_vgg11_l2_1_0/checkpoint.pt \
     --teacher-arch vgg11 \
     --student-arch resnet50 \
-    --xent-weight 0.001 \
+    --xent-weight 0.00005 \
     --feat-loss cosine
     --feat-weight -1.0 
 ```
@@ -163,7 +163,7 @@ python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /pa
 
 ```
 
-Run the AutoPGD attack by appropriately setting args `arch`, `load-path`, `dataroot`, to get the numbers reported in Table 2.
+Run the AutoPGD attack by appropriately setting args `arch`, `load-path`, `dataroot`, to get the numbers reported in Table 2. When evaluating KD models, appropriately set the `temperature` arg.
 
 Both these scripts return accuracy on the clean test set by default. Training time statistics will also be generated if the training log text file is available.
 

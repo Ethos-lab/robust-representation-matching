@@ -122,7 +122,7 @@ def main():
     # Training time statistics
     logfile = f'{args.load_path.replace(args.load_path.split("/")[-1], "output.log")}'
     if not os.path.exists(logfile):
-        print("Unable to find log file, skipping train time stats computation !!!")
+        print("Unable to find training log file, skipping train time stats computation !!!")
     else:
         res = compute_time_stats(logfile)
         print(f'Average epoch time: {res["mean"]:.2f}s, 95% confidence interval: {res["ci"]:.2f}s')

@@ -1,6 +1,6 @@
 # Robust Representation Matching (RRM)
 
-This repository contains the code and models necessary to replicate the results of our USENIX'22 Fall paper:
+This repository contains the code and models necessary to replicate the results of our USENIX Security '22 Fall paper:
 
 **Transferring Adversarial Robustness Through Robust Representation Matching**
 
@@ -8,7 +8,7 @@ This repository contains the code and models necessary to replicate the results 
 
 **Paper**: https://arxiv.org/abs/2202.09994
 
-**USENIX'22 Fall Artifact Evaluation Final Version:** https://github.com/Ethos-lab/robust-representation-matching/releases/tag/final
+**USENIX Security '22 Fall Artifact Evaluation Final Version:** https://github.com/Ethos-lab/robust-representation-matching/releases/tag/final
 
 **Abstract**: 
 With the widespread use of machine learning, concerns over its security and reliability have become prevalent. As such, many have developed defenses to harden neural networks against adversarial examples, imperceptibly perturbed inputs that are reliably misclassified. Adversarial training in which adversarial examples are generated and used during training is one of the few known defenses able to reliably withstand such attacks against neural networks. However, adversarial training imposes a significant training overhead and scales poorly with model complexity and input dimension. In this paper, we propose Robust Representation Matching (RRM), a low-cost method to transfer the robustness of an adversarially trained model to a new model being trained for the same task irrespective of architectural differences. Inspired by student-teacher learning, our method introduces a novel training loss that encourages the student to learn the teacher’s robust representations. Compared to prior works, RRM is superior with respect to both model performance and adversarial training time. On CIFAR-10, RRM trains a robust model ∼1.8× faster than the state-of-the-art. Furthermore, RRM remains effective on higher-dimensional datasets. On Restricted-ImageNet, RRM trains a ResNet50 model ∼18×faster than standard adversarial training.

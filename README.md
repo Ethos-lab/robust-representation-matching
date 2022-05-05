@@ -1,6 +1,6 @@
 # Robust Representation Matching (RRM)
 
-This repository contains the code and models necessary to replicate the results of our USENIX Security '22 Fall paper:
+This repository contains the code necessary to replicate the results of our USENIX Security '22 Fall paper:
 
 **Transferring Adversarial Robustness Through Robust Representation Matching**
 

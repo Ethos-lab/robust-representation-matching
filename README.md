@@ -93,7 +93,8 @@ python -m l_2.ibm_test --dataroot /path/to/cifar --arch resnet50 --load-path /pa
 python -m l_2.ibm_test --dataroot /path/to/imagenet/root --arch resnet50 --load-path /path/to/checkpoint.pt --attack autopgd --eps 3.0 --pgd-iters 20 --random-restarts 5
 ```
 
-**Hardware Requirements:** The following hardware is required to run the code in this repository:
+### Hardware Requirements
+The following hardware is required to run the code in this repository:
 
 - 1x GPU with 12 GB memory
 - approximately 150 GB storage space
